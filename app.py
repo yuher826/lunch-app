@@ -258,4 +258,19 @@ else:
             with st.form("exp_form", clear_on_submit=True):
                 ex_name = st.text_input("Item Name")
                 ex_cost = st.number_input("Cost (KRW)", step=1000)
-                if st.form_
+                if st.form_submit_button("Save Expense", type="primary", use_container_width=True):
+                    new_exp = {'Date': datetime.now().strftime("%Y-%m-%d"), 'Item': ex_name, 'Cost': ex_cost}
+                    st.session_state.purchases = pd.concat([st.session_state.purchases, pd.DataFrame([new_exp])], ignore_index=True)
+                    st.success("Expense Saved!")
+            
+            st.markdown("#### Expense List")
+            st.dataframe(st.session_state.purchases, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        # [탭4] 통합 보고서 (복구됨!)
+        with adm_tab4:
+            st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown("#### Monthly Profit Report")
+            hist = st.session_state.history_df
+            st.line_chart(hist.set_index('날짜')[['총매출', '총매입(원가)']])
+            st.markdown("</div>", unsafe_allow_html=True)
