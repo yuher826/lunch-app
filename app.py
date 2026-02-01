@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 모바일 화면 강제 맞춤 CSS (스크롤 제거, 무조건 한 화면)
+# 2. [디자인] 구글/삼성 캘린더 스타일 CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -15,80 +15,69 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심 1] 모바일(768px 이하)에서 가로 스크롤 없애고 무조건 한 줄에 7개 */
-    @media (max-width: 768px) {
-        /* 부모 컨테이너: 가로 정렬, 줄바꿈 금지, 간격 0 */
-        div[data-testid="stHorizontalBlock"] {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            gap: 0px !important;
-            overflow-x: hidden !important; /* 스크롤바 숨김 */
-        }
-        
-        /* 자식 컬럼: 시작 너비를 0으로 잡고 비율로 늘림 (이래야 안 삐져나감) */
-        div[data-testid="column"] {
-            flex: 1 1 0px !important; /* 0px에서 시작해서 균등 분할 */
-            width: 0px !important;
-            min-width: 0px !important;
-            padding: 1px !important;  /* 아주 미세한 간격 */
-            margin: 0px !important;
-        }
-
-        /* 버튼: 폰트 줄이고 여백 삭제 */
-        div.stButton > button {
-            font-size: 8px !important;   /* 글씨 최대한 작게 */
-            padding: 0px !important;     /* 내부 여백 삭제 */
-            height: 45px !important;     /* 높이 적당히 */
-            line-height: 1.1 !important; /* 줄간격 좁게 */
-            min-height: 0px !important;
-            white-space: pre-wrap !important; /* 줄바꿈 허용 */
-        }
-        
-        /* 요일 헤더 글씨 크기 */
-        .day-header { font-size: 9px !important; margin-bottom: 2px !important; }
+    /* [핵심] 가로 7칸 강제 정렬 (숫자만 넣어서 공간 확보) */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 2px !important; /* 버튼 사이 아주 미세한 간격 */
+    }
+    
+    div[data-testid="column"] {
+        flex: 1 1 0px !important;
+        width: 0px !important;
+        min-width: 0px !important;
+        padding: 0px !important;
+        margin: 0px !important;
     }
 
-    /* PC 화면 설정 */
-    div[data-testid="column"] { min-width: 0px !important; }
-
-    /* 버튼 기본 스타일 */
+    /* 버튼 스타일: 원형/사각형 중간 형태 (삼성 캘린더 느낌) */
     div.stButton > button {
-        background-color: #2C2C2C;
-        border: 1px solid #333;
+        background-color: #1E1E1E; /* 기본 배경: 어두운 회색 */
+        border: none;
         color: #E0E0E0;
-        border-radius: 4px;
+        border-radius: 8px; /* 둥근 모서리 */
         width: 100%;
-        height: 55px;
+        height: 45px !important; /* 정사각형에 가깝게 */
+        padding: 0px !important;
+        font-size: 14px !important; /* 숫자는 잘 보이게 */
+        font-weight: 600;
         margin-bottom: 2px;
     }
-    div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
+    
+    /* 선택된 버튼/오늘 날짜 강조 등은 파이썬 로직에서 처리 */
+    div.stButton > button:hover { background-color: #333; color: #2979FF; }
+    div.stButton > button:active { background-color: #2979FF; color: white; }
 
-    /* 요일 스타일 */
-    .day-header { text-align: center; font-weight: bold; font-size: 12px; }
-    .sun { color: #FF5252; }
-    .sat { color: #448AFF; }
-    .wday { color: #AAAAAA; }
+    /* 요일 헤더 */
+    .day-header { text-align: center; font-size: 11px; margin-bottom: 5px; color: #888; }
+    .sun { color: #FF5252 !important; }
+    .sat { color: #448AFF !important; }
 
-    /* 기타 */
-    .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
+    /* 하단 상세 카드 */
+    .detail-card {
+        background-color: #1E1E1E;
+        border-radius: 20px;
+        padding: 20px;
+        margin-top: 20px;
+        border: 1px solid #333;
+        animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
     .highlight { color: #2979FF; font-weight: bold; }
-    h1, h2, h3 { color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
 # 3. 데이터 초기화
 if 'menu_db' not in st.session_state:
     st.session_state.menu_db = {
-        1: {"name": "직화제육", "full_name": "직화 제육 정식", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
-        2: {"name": "연어포케", "full_name": "생연어 포케볼", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
-        3: {"name": "스테이크", "full_name": "큐브 스테이크 덮밥", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
-        4: {"name": "닭가슴살", "full_name": "수비드 닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
-        5: {"name": "안동찜닭", "full_name": "매콤 안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
+        1: {"name": "직화 제육 정식", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
+        2: {"name": "생연어 포케볼", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
+        3: {"name": "큐브 스테이크 덮밥", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
+        4: {"name": "수비드 닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
+        5: {"name": "매콤 안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
     }
     for i in range(6, 32):
-        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "full_name": "오늘의 셰프 특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
-        else: st.session_state.menu_db[i] = {"name": "주말특식", "full_name": "주말 스페셜 브런치", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
+        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "오늘의 셰프 특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
+        else: st.session_state.menu_db[i] = {"name": "주말 스페셜 브런치", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
 
 if 'user_db' not in st.session_state: st.session_state.user_db = {"admin": "1234", "user": "1234"}
 if 'orders' not in st.session_state: st.session_state.orders = pd.DataFrame()
@@ -100,7 +89,6 @@ if 'history_df' not in st.session_state:
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'selected_date' not in st.session_state: st.session_state.selected_date = datetime.now().day
-if 'page' not in st.session_state: st.session_state.page = "calendar"
 
 # ==========================================
 # [화면 1] 로그인
@@ -110,7 +98,7 @@ if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center; color: #2979FF; font-size: 3rem;'>12:10</h1>", unsafe_allow_html=True)
     
     with st.container():
-        st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
         id_in = st.text_input("아이디", key="login_id")
         pw_in = st.text_input("비밀번호", type="password", key="login_pw")
         if st.button("로그인", type="primary", use_container_width=True):
@@ -123,7 +111,7 @@ if not st.session_state.logged_in:
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
-# [화면 2] 메인 앱
+# [화면 2] 메인 앱 (구글 캘린더 스타일)
 # ==========================================
 else:
     with st.sidebar:
@@ -134,63 +122,75 @@ else:
 
     if st.session_state.user_role == "user":
         
-        if st.session_state.page == "calendar":
-            st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
-            
-            # [헤더] 7칸
+        # 1. 캘린더 영역
+        st.markdown("<h3 style='text-align:center; margin-bottom: 20px;'>2026년 2월</h3>", unsafe_allow_html=True)
+        
+        # 요일 헤더
+        cols = st.columns(7)
+        days = ['일', '월', '화', '수', '목', '금', '토']
+        classes = ['sun', '', '', '', '', '', 'sat']
+        for i, (d, c) in enumerate(zip(days, classes)):
+            cols[i].markdown(f"<div class='day-header {c}'>{d}</div>", unsafe_allow_html=True)
+        
+        # 달력 그리드 (숫자만 표시 -> 좁은 화면 해결)
+        cal = calendar.Calendar(firstweekday=6)
+        month_days = cal.monthdayscalendar(2026, 2)
+        
+        for week in month_days:
             cols = st.columns(7)
-            days_labels = [('일', 'sun'), ('월', 'wday'), ('화', 'wday'), ('수', 'wday'), ('목', 'wday'), ('금', 'wday'), ('토', 'sat')]
-            for i, (day_text, css_cls) in enumerate(days_labels):
-                cols[i].markdown(f"<div class='day-header {css_cls}'>{day_text}</div>", unsafe_allow_html=True)
-            
-            # [달력 본문] 7칸 (일요일 시작)
-            cal = calendar.Calendar(firstweekday=6)
-            month_days = cal.monthdayscalendar(2026, 2)
-            
-            for week in month_days:
-                cols = st.columns(7)
-                for i, day in enumerate(week):
-                    with cols[i]:
-                        if day != 0:
-                            info = st.session_state.menu_db.get(day, {"name": ""})
-                            # 날짜 + 줄바꿈 + 메뉴명
-                            btn_text = f"{day}\n{info['name']}"
-                            if st.button(btn_text, key=f"d_{day}"):
-                                st.session_state.selected_date = day
-                                st.session_state.page = "detail"
-                                st.rerun()
-                        else:
-                            st.markdown("<div style='height:45px'></div>", unsafe_allow_html=True)
-                st.write("") # 줄 간격
+            for i, day in enumerate(week):
+                with cols[i]:
+                    if day != 0:
+                        # 선택된 날짜면 버튼 스타일 변경 (primary)
+                        btn_type = "primary" if day == st.session_state.selected_date else "secondary"
+                        
+                        # 버튼엔 오직 '숫자'만 넣음 -> 공간 확보
+                        if st.button(f"{day}", key=f"d_{day}", type=btn_type):
+                            st.session_state.selected_date = day
+                            st.rerun()
+                    else:
+                        st.markdown("<div style='height:45px'></div>", unsafe_allow_html=True)
+            st.write("") # 줄 간격
 
-        elif st.session_state.page == "detail":
-            sel_day = st.session_state.selected_date
-            menu = st.session_state.menu_db.get(sel_day)
+        # 2. 상세 정보 영역 (클릭하면 여기에 뜸)
+        sel_day = st.session_state.selected_date
+        menu = st.session_state.menu_db.get(sel_day)
+        
+        # 카드 형태로 상세 정보 표시
+        st.markdown(f"""
+        <div class='detail-card'>
+            <div style='font-size: 14px; color: #888; margin-bottom: 5px;'>2월 {sel_day}일 메뉴</div>
+            <h2 style='margin-top: 0px;'>{menu['name']}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.image(menu['img'], use_container_width=True)
+        
+        c1, c2 = st.columns(2)
+        with c1: st.markdown(f"🔥 **{menu['kcal']}** kcal")
+        with c2: st.markdown(f"💰 **{menu['price']:,}** 원")
+        
+        # 주문하기 폼
+        with st.form("order_form"):
+            qty = st.number_input("수량", 1, 10, 1)
+            loc = st.selectbox("수령 장소", ["스마트베이", "오비즈타워", "동일테크노"])
             
-            if st.button("← 뒤로가기"):
-                st.session_state.page = "calendar"
-                st.rerun()
-                
-            st.markdown(f"<div class='menu-card'>", unsafe_allow_html=True)
-            st.markdown(f"<span class='highlight'>{sel_day}일</span> 메뉴", unsafe_allow_html=True)
-            st.markdown(f"<h3>{menu['full_name']}</h3>", unsafe_allow_html=True)
-            st.image(menu['img'], use_container_width=True)
-            
-            c1, c2 = st.columns(2)
-            with c1: st.markdown(f"🔥 {menu['kcal']}")
-            with c2: st.markdown(f"💰 {menu['price']:,}원")
-            
-            with st.form("order"):
-                qty = st.number_input("수량", 1, 10, 1)
-                loc = st.selectbox("수령", ["스마트베이", "오비즈", "동일"])
-                if st.form_submit_button("주문하기", type="primary", use_container_width=True):
-                    new_ord = {'날짜': f"2026-02-{sel_day}", '고객명': st.session_state.user_name, '메뉴': menu['full_name'], '수량': qty, '합계': qty*menu['price'], '거점': loc}
-                    st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
-                    st.success("주문 완료!")
-            st.markdown("</div>", unsafe_allow_html=True)
+            # 주문 버튼
+            if st.form_submit_button("장바구니 담기 & 결제", type="primary", use_container_width=True):
+                new_ord = {
+                    '날짜': f"2026-02-{sel_day}",
+                    '고객명': st.session_state.user_name,
+                    '메뉴': menu['name'],
+                    '수량': qty,
+                    '합계': qty * menu['price'],
+                    '거점': loc
+                }
+                st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
+                st.success(f"{sel_day}일 주문이 완료되었습니다!")
 
+    # 관리자 모드
     elif st.session_state.user_role == "admin":
-        st.markdown("### 📊 관리자 모드")
+        st.markdown("### 📊 관리자 대시보드")
         df_ord = st.session_state.orders
         t1, t2, t3, t4 = st.tabs(["대시보드", "주문현황", "지출관리", "보고서"])
         
