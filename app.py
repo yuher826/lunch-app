@@ -8,34 +8,24 @@ from datetime import datetime
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
 # ==============================================================
-# [핵심 로직] 메뉴명을 3글자씩 자르고 줄바꿈(\n) 넣기
+# [로직 유지] 3글자씩 자르고 줄바꿈(\n) 넣기
 # ==============================================================
 def make_label(day, menu_name):
-    # 1. 날짜 (1층)
     label = f"{day}\n"
-    
     if menu_name:
-        # 공백 제거 (공간 확보)
         clean_name = menu_name.replace(" ", "")
-        
-        # 2. 첫 번째 줄 (2층) - 최대 3글자
         line1 = clean_name[0:3]
         label += f"{line1}"
-        
-        # 3. 두 번째 줄 (3층) - 나머지 처리
         if len(clean_name) > 3:
-            label += "\n" # 줄바꿈
+            label += "\n"
             remaining = clean_name[3:]
-            
-            # 남은 게 3글자보다 길면 2글자+.. 처리
             if len(remaining) > 3:
                 label += f"{remaining[0:2]}.."
             else:
                 label += f"{remaining}"
-            
     return label
 
-# 2. [디자인] 여백 0 + 자간 압축 CSS (이게 핵심입니다!)
+# 2. [디자인] 프리미엄 UI + 여백제거 유지
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -44,14 +34,14 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
     /* -------------------------------------------------------- */
-    /* [모바일] 768px 이하: 여백 완전 제거 + 글자 욱여넣기 */
+    /* [모바일] 768px 이하: 디자인 디테일 업그레이드 */
     /* -------------------------------------------------------- */
     @media (max-width: 768px) {
-        /* 1. 7칸 격자 프레임 (절대 안 깨짐) */
+        /* 격자 구조 (유지) */
         div[data-testid="stHorizontalBlock"] {
             display: grid !important;
             grid-template-columns: repeat(7, 1fr) !important;
-            gap: 1px !important;
+            gap: 3px !important; /* 간격을 1px -> 3px로 늘려서 시원하게 */
             padding: 0px !important;
         }
         
@@ -62,69 +52,83 @@ st.markdown("""
             padding: 0px !important;
         }
         
-        /* 2. 버튼 스타일 (공간 확보의 핵심) */
+        /* 버튼 스타일 (더 예쁘게!) */
         div.stButton > button {
             width: 100% !important;
-            height: 65px !important;     /* 3줄 들어갈 높이 확보 */
+            height: 68px !important;
             
-            /* [★제일 중요] 좌우 여백을 0으로 만듭니다 */
+            /* [핵심 유지] 여백 제거 */
             padding-left: 0px !important;
             padding-right: 0px !important;
-            padding-top: 4px !important;
+            padding-top: 5px !important;
             padding-bottom: 2px !important;
             
-            border-radius: 4px !important;
+            /* [디자인 변경] 둥글고 부드럽게 */
+            border-radius: 12px !important; /* 더 둥글게 */
+            background-color: #1E1E1E !important; /* 조금 더 밝은 다크그레이 */
+            border: 1px solid #333 !important; /* 은은한 테두리 */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important; /* 살짝 그림자 */
             margin: 0px !important;
             
-            /* 폰트 및 자간 설정 */
-            font-size: 10px !important;      /* 글씨 크기 10px */
-            letter-spacing: -1.5px !important; /* [핵심] 자간을 좁혀서 3글자 넣기 */
-            line-height: 1.3 !important;     /* 줄 간격 넓혀서 겹침 방지 */
-            
-            /* 줄바꿈 설정 */
-            white-space: pre !important;     /* 파이썬에서 넣은 \n을 그대로 적용 */
-            word-break: keep-all !important; 
+            /* 폰트 설정 */
+            color: #E0E0E0 !important;
+            font-size: 10px !important;
+            letter-spacing: -1.5px !important;
+            line-height: 1.35 !important;
             
             /* 정렬 */
+            white-space: pre !important;
+            word-break: keep-all !important;
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
             justify-content: flex-start !important;
         }
         
+        /* 버튼 눌렀을 때 효과 */
+        div.stButton > button:active {
+            background-color: #2979FF !important;
+            color: white !important;
+            transform: scale(0.95); /* 살짝 눌리는 느낌 */
+        }
+
         /* 요일 헤더 */
-        .day-header { font-size: 10px !important; margin-bottom: 3px !important; letter-spacing: -1px; }
+        .day-header { 
+            font-size: 11px !important; 
+            margin-bottom: 8px !important; 
+            letter-spacing: 0px; 
+            opacity: 0.8;
+        }
     }
 
     /* PC 화면 */
     div[data-testid="column"] { min-width: 0px !important; }
 
-    /* 공통 버튼 스타일 */
-    div.stButton > button {
-        background-color: #2C2C2C;
-        border: 1px solid #333;
-        color: #E0E0E0;
-        border-radius: 6px;
-    }
-    div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
-    div.stButton > button:active { background-color: #2979FF; color: white; }
-
     /* 날짜/요일 색상 */
-    .day-header { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; }
+    .day-header { text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px; }
     .sun { color: #FF5252; }
     .sat { color: #448AFF; }
     .wday { color: #AAAAAA; }
 
     /* 상세 페이지 카드 */
-    .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
+    .menu-card { 
+        background-color: #1E1E1E; 
+        border-radius: 20px; 
+        padding: 20px; 
+        margin-top: 20px;
+        border: 1px solid #333; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
     .big-btn > button {
         background-color: #2979FF !important;
         color: white !important;
-        height: 50px !important;
-        font-size: 14px !important;
+        height: 55px !important;
+        font-size: 16px !important;
+        font-weight: bold !important;
         letter-spacing: 0px !important;
-        padding-left: 10px !important; /* 큰 버튼은 여백 복구 */
+        padding-left: 10px !important;
         padding-right: 10px !important;
+        border-radius: 12px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -182,9 +186,9 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (3글자 강제 + 여백 삭제)
+        # [모드 1] 달력 화면 (디자인 업그레이드)
         if st.session_state.view_mode == "calendar":
-            st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align:center; margin-bottom:20px;'>2026년 2월</h3>", unsafe_allow_html=True)
             
             # 요일 헤더
             cols = st.columns(7)
@@ -197,15 +201,19 @@ else:
             cal = calendar.Calendar(firstweekday=6)
             month_days = cal.monthdayscalendar(2026, 2)
             
+            # 오늘 날짜 (예시로 17일이라 가정, 실제론 datetime.now().day 쓰시면 됩니다)
+            today = 17 
+            
             for week in month_days:
                 cols = st.columns(7)
                 for i, day in enumerate(week):
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            
-                            # [핵심] 파이썬 함수로 '3글자씩 강제 개행'된 텍스트를 받습니다.
                             btn_text = make_label(day, info['name'])
+                            
+                            # 버튼 타입: 오늘이면 primary(강조), 아니면 secondary(일반)
+                            # 하지만 위 CSS가 덮어씌우므로 큰 의미는 없지만, 키 구분을 위해
                             
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
@@ -229,8 +237,8 @@ else:
             
             st.markdown(f"""
             <div class='menu-card'>
-                <p style='color:#2979FF; margin-bottom:5px;'>2월 {sel_day}일</p>
-                <h2 style='margin-top:0;'>{menu['name']}</h2>
+                <p style='color:#2979FF; margin-bottom:5px; font-weight:bold;'>2월 {sel_day}일의 맛있는 점심</p>
+                <h2 style='margin-top:0; font-size: 24px;'>{menu['name']}</h2>
             </div>
             """, unsafe_allow_html=True)
             
