@@ -2,13 +2,12 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import calendar
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 달력 전용 CSS (충돌 방지 최적화)
+# 2. [디자인] 달력 전용 CSS (충돌 방지 안전 버전)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -18,7 +17,7 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
     /* [핵심] 달력 5등분 강제 고정 */
-    /* 주의: 이 설정 때문에 상단 헤더에 컬럼을 쓰면 깨질 수 있음 -> 헤더는 사이드바로 이동 */
+    /* 화면 깨짐 방지를 위해 상단 헤더는 사이드바로 뺐습니다 */
     [data-testid="column"] {
         display: flex;
         flex-direction: column;
@@ -131,7 +130,7 @@ if not st.session_state.logged_in:
 # [화면 2] 메인 앱
 # ==========================================
 else:
-    # [수정] 상단 헤더의 컬럼을 제거하고 사이드바로 이동 (화면 깨짐 방지)
+    # [중요] 상단 헤더를 왼쪽 사이드바로 이동 (화면 깨짐 방지)
     with st.sidebar:
         st.write(f"👋 **{st.session_state.user_name}**님")
         if st.button("로그아웃", key="logout"): 
@@ -139,7 +138,7 @@ else:
             st.rerun()
 
     # ----------------------------------
-    # [A] 사용자: 5+2 배열 달력 (화면 깨짐 해결)
+    # [A] 사용자: 5+2 배열 달력 (오타 수정 완료)
     # ----------------------------------
     if st.session_state.user_role == "user":
         
@@ -157,7 +156,7 @@ else:
             # 주(Week) 단위 루프
             for week_idx, week in enumerate(cal):
                 
-                # 1. 평일 (월~금, 인덱스 0~4) -> 윗줄
+                # 1. 평일 (월~금) -> 윗줄
                 cols = st.columns(5)
                 for i in range(5):
                     day = week[i]
@@ -175,7 +174,7 @@ else:
                 if week[5] != 0 or week[6] != 0:
                     cols_weekend = st.columns(5) # 5칸 그리드 유지
                     
-                    # 토요일 (첫번째 칸)
+                    # 토요일
                     with cols_weekend[0]:
                         day = week[5]
                         if day != 0:
@@ -185,7 +184,7 @@ else:
                                 st.session_state.page = "detail"
                                 st.rerun()
                     
-                    # 일요일 (두번째 칸)
+                    # 일요일
                     with cols_weekend[1]:
                         day = week[6]
                         if day != 0:
@@ -225,5 +224,55 @@ else:
                 loc = st.selectbox("받으실 곳", ["평촌 스마트베이", "오비즈타워", "동일테크노"])
                 
                 if st.form_submit_button("장바구니 담기 & 결제", type="primary", use_container_width=True):
+                    # [에러 발생했던 지점 수정 완료]
                     new_ord = {
-                        '날짜': f"
+                        '날짜': f"2026-02-{sel_day}",
+                        '고객명': st.session_state.user_name,
+                        '메뉴': menu['full_name'],
+                        '수량': qty,
+                        '합계': qty * menu['price'],
+                        '거점': loc
+                    }
+                    st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
+                    st.success("주문이 완료되었습니다!")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ----------------------------------
+    # [B] 관리자 화면
+    # ----------------------------------
+    elif st.session_state.user_role == "admin":
+        st.markdown("### 📊 관리자 대시보드")
+        df_ord = st.session_state.orders
+        t1, t2, t3, t4 = st.tabs(["대시보드", "주문현황", "지출관리", "보고서"])
+        
+        with t1:
+            c1, c2 = st.columns(2)
+            sales = df_ord['합계'].sum() if not df_ord.empty else 0
+            qty = df_ord['수량'].sum() if not df_ord.empty else 0
+            with c1:
+                st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
+                st.metric("총 매출", f"{sales:,}")
+                st.markdown("</div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
+                st.metric("총 주문", f"{qty}개")
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        with t2:
+            st.dataframe(df_ord, use_container_width=True)
+            if not df_ord.empty:
+                hm = pd.pivot_table(df_ord, values='수량', index='메뉴', columns='거점', aggfunc='sum', fill_value=0)
+                st.dataframe(hm.style.background_gradient(cmap='Blues'), use_container_width=True)
+
+        with t3:
+            with st.form("buy"):
+                i_name = st.text_input("내용")
+                i_cost = st.number_input("금액", step=1000)
+                if st.form_submit_button("등록"):
+                    new_p = {'날짜': datetime.now().strftime("%Y-%m-%d"), '항목': i_name, '금액': i_cost}
+                    st.session_state.purchases = pd.concat([st.session_state.purchases, pd.DataFrame([new_p])], ignore_index=True)
+                    st.success("저장됨")
+            st.dataframe(st.session_state.purchases, use_container_width=True)
+
+        with t4:
+            st.line_chart(st.session_state.history_df.set_index('날짜')[['총매출', '총매입(원가)']])
