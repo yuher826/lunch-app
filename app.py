@@ -182,4 +182,65 @@ else:
             sel_day = st.session_state.selected_date
             menu = st.session_state.menu_db.get(sel_day)
             
-            if st.button("
+            if st.button("← 달력으로 돌아가기"):
+                st.session_state.page = "calendar"
+                st.rerun()
+                
+            st.markdown(f"<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown(f"<span class='highlight'>{sel_day}일</span> 메뉴", unsafe_allow_html=True)
+            st.markdown(f"<h3>{menu['full_name']}</h3>", unsafe_allow_html=True)
+            st.image(menu['img'], use_container_width=True)
+            
+            c1, c2 = st.columns(2)
+            with c1: st.markdown(f"🔥 {menu['kcal']}")
+            with c2: st.markdown(f"💰 {menu['price']:,}원")
+            
+            with st.form("order"):
+                qty = st.number_input("수량", 1, 10, 1)
+                loc = st.selectbox("수령", ["스마트베이", "오비즈", "동일"])
+                if st.form_submit_button("주문하기", type="primary", use_container_width=True):
+                    new_ord = {'날짜': f"2026-02-{sel_day}", '고객명': st.session_state.user_name, '메뉴': menu['full_name'], '수량': qty, '합계': qty*menu['price'], '거점': loc}
+                    st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
+                    st.success("주문 완료!")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ----------------------------------
+    # [B] 관리자 모드
+    # ----------------------------------
+    elif st.session_state.user_role == "admin":
+        st.markdown("### 📊 관리자 모드")
+        df_ord = st.session_state.orders
+        
+        t1, t2, t3, t4 = st.tabs(["대시보드", "주문현황", "지출관리", "보고서"])
+        
+        with t1:
+            c1, c2 = st.columns(2)
+            sales = df_ord['합계'].sum() if not df_ord.empty else 0
+            qty = df_ord['수량'].sum() if not df_ord.empty else 0
+            with c1:
+                st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
+                st.metric("총 매출", f"{sales:,}")
+                st.markdown("</div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
+                st.metric("총 주문", f"{qty}개")
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        with t2:
+            st.dataframe(df_ord, use_container_width=True)
+            if not df_ord.empty:
+                hm = pd.pivot_table(df_ord, values='수량', index='메뉴', columns='거점', aggfunc='sum', fill_value=0)
+                st.dataframe(hm.style.background_gradient(cmap='Blues'), use_container_width=True)
+
+        with t3:
+            with st.form("buy"):
+                i_name = st.text_input("내용")
+                i_cost = st.number_input("금액", step=1000)
+                if st.form_submit_button("등록"):
+                    new_p = {'날짜': datetime.now().strftime("%Y-%m-%d"), '항목': i_name, '금액': i_cost}
+                    st.session_state.purchases = pd.concat([st.session_state.purchases, pd.DataFrame([new_p])], ignore_index=True)
+                    st.success("저장됨")
+            st.dataframe(st.session_state.purchases, use_container_width=True)
+
+        with t4:
+            st.line_chart(st.session_state.history_df.set_index('날짜')[['총매출', '총매입(원가)']])
