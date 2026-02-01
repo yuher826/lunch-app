@@ -8,30 +8,34 @@ from datetime import datetime
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
 # ==============================================================
-# [핵심 로직] 파이썬으로 3글자씩 잘라서 엔터(\n) 넣기
+# [핵심 로직] 메뉴명을 3글자씩 자르고 줄바꿈(\n) 넣기
 # ==============================================================
-def make_3char_label(day, menu_name):
-    # 1. 날짜 먼저 넣고 줄바꿈
+def make_label(day, menu_name):
+    # 1. 날짜 (1층)
     label = f"{day}\n"
     
     if menu_name:
-        # 2. 메뉴명을 3글자씩 자릅니다 (예: '매콤안', '동찜닭')
-        # 공백을 없애서 공간을 더 확보합니다 (replace)
+        # 공백 제거 (공간 확보)
         clean_name = menu_name.replace(" ", "")
         
-        # 2줄(6글자)까지만 보여주고 나머지는 .. 처리
+        # 2. 첫 번째 줄 (2층) - 최대 3글자
         line1 = clean_name[0:3]
-        line2 = clean_name[3:6]
+        label += f"{line1}"
         
-        label += line1
+        # 3. 두 번째 줄 (3층) - 나머지 처리
         if len(clean_name) > 3:
-            label += f"\n{line2}"
-        if len(clean_name) > 6:
-            label += ".." # 뒤에 더 있다는 표시
+            label += "\n" # 줄바꿈
+            remaining = clean_name[3:]
+            
+            # 남은 게 3글자보다 길면 2글자+.. 처리
+            if len(remaining) > 3:
+                label += f"{remaining[0:2]}.."
+            else:
+                label += f"{remaining}"
             
     return label
 
-# 2. [디자인] 여백 0px + 글자 욱여넣기 CSS
+# 2. [디자인] 여백 0 + 자간 압축 CSS (이게 핵심입니다!)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -40,10 +44,10 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
     /* -------------------------------------------------------- */
-    /* [모바일] 768px 이하: 여백 완전 제거 (공간 확보 최우선) */
+    /* [모바일] 768px 이하: 여백 완전 제거 + 글자 욱여넣기 */
     /* -------------------------------------------------------- */
     @media (max-width: 768px) {
-        /* 1. 7칸 격자 프레임 */
+        /* 1. 7칸 격자 프레임 (절대 안 깨짐) */
         div[data-testid="stHorizontalBlock"] {
             display: grid !important;
             grid-template-columns: repeat(7, 1fr) !important;
@@ -58,28 +62,28 @@ st.markdown("""
             padding: 0px !important;
         }
         
-        /* 2. 버튼 스타일 (내부 여백 삭제가 핵심!) */
+        /* 2. 버튼 스타일 (공간 확보의 핵심) */
         div.stButton > button {
             width: 100% !important;
-            height: 70px !important;     /* 3줄 들어가야 하니 높게 */
+            height: 65px !important;     /* 3줄 들어갈 높이 확보 */
             
             /* [★제일 중요] 좌우 여백을 0으로 만듭니다 */
             padding-left: 0px !important;
             padding-right: 0px !important;
-            padding-top: 2px !important;
+            padding-top: 4px !important;
             padding-bottom: 2px !important;
             
             border-radius: 4px !important;
             margin: 0px !important;
             
-            /* 폰트 설정 */
-            font-size: 10px !important;   /* 9~10px 정도면 보입니다 */
-            letter-spacing: -1px !important; /* 자간을 좁혀서 더 많이 넣기 */
-            line-height: 1.2 !important;
+            /* 폰트 및 자간 설정 */
+            font-size: 10px !important;      /* 글씨 크기 10px */
+            letter-spacing: -1.5px !important; /* [핵심] 자간을 좁혀서 3글자 넣기 */
+            line-height: 1.3 !important;     /* 줄 간격 넓혀서 겹침 방지 */
             
             /* 줄바꿈 설정 */
-            white-space: pre-wrap !important; /* 파이썬이 넣은 \n을 인식해라 */
-            word-break: break-all !important; 
+            white-space: pre !important;     /* 파이썬에서 넣은 \n을 그대로 적용 */
+            word-break: keep-all !important; 
             
             /* 정렬 */
             display: flex !important;
@@ -119,7 +123,7 @@ st.markdown("""
         height: 50px !important;
         font-size: 14px !important;
         letter-spacing: 0px !important;
-        padding-left: 10px !important; /* 큰 버튼은 여백 있어도 됨 */
+        padding-left: 10px !important; /* 큰 버튼은 여백 복구 */
         padding-right: 10px !important;
     }
     </style>
@@ -135,8 +139,8 @@ if 'menu_db' not in st.session_state:
         5: {"name": "매콤안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
     }
     for i in range(6, 32):
-        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
-        else: st.session_state.menu_db[i] = {"name": "주말브런치", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
+        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "오늘의셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
+        else: st.session_state.menu_db[i] = {"name": "주말브런치세트", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
 
 if 'user_db' not in st.session_state: st.session_state.user_db = {"admin": "1234", "user": "1234"}
 if 'orders' not in st.session_state: st.session_state.orders = pd.DataFrame()
@@ -178,7 +182,7 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (3글자 강제)
+        # [모드 1] 달력 화면 (3글자 + 여백제로)
         if st.session_state.view_mode == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
@@ -200,8 +204,9 @@ else:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
                             
-                            # [핵심] 파이썬 함수로 '3글자씩 강제 개행'된 텍스트를 받습니다.
-                            btn_text = make_3char_label(day, info['name'])
+                            # [핵심] 파이썬이 미리 3글자씩 잘라서 모양을 만듭니다.
+                            # 예: "1\n매콤안\n동찜닭.."
+                            btn_text = make_label(day, info['name'])
                             
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
