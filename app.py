@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 모바일 강제 7등분 고정 CSS (초강력 버전)
+# 2. [디자인] 모바일 강제 7칸 고정 CSS (초강력 버전)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -15,50 +15,63 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심 1] 모바일에서도 가로 정렬 강제 유지 (줄바꿈 금지) */
-    div[data-testid="stHorizontalBlock"] {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important; /* 절대 줄바꿈 하지 마! */
-        gap: 1px !important;
-        overflow-x: hidden !important;
+    /* [초강력] 모바일(768px 이하)에서 가로 정렬 강제 적용 */
+    @media (max-width: 768px) {
+        /* 가로 줄바꿈 원천 봉쇄 */
+        div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important; /* 줄바꿈 절대 금지 */
+            gap: 1px !important;
+        }
+        
+        /* 컬럼 너비 강제 축소 (무조건 화면에 구겨 넣기) */
+        div[data-testid="column"] {
+            flex: 1 1 0px !important; /* 공간 균등 분배 */
+            width: auto !important;
+            min-width: 0px !important; /* 최소 너비 제한 해제 (이게 핵심) */
+            padding: 0px !important;
+            margin: 0px !important;
+        }
+
+        /* 모바일용 버튼 스타일 (아주 작게) */
+        div.stButton > button {
+            font-size: 9px !important;   /* 글씨 작게 */
+            padding: 0px !important;     /* 여백 제거 */
+            height: 45px !important;     /* 높이 고정 */
+            line-height: 1.1 !important; /* 줄간격 좁게 */
+            min-height: 0px !important;
+        }
     }
 
-    /* [핵심 2] 컬럼 너비 14.28% (1/7) 강제 고정 */
+    /* PC에서도 7등분 유지 */
     div[data-testid="column"] {
-        flex: 1 1 14.28% !important;
-        width: 14.28% !important;
-        min-width: 0px !important; /* 내용이 커도 강제로 줄임 */
-        padding: 0px !important;
-        margin: 0px !important;
+        min-width: 0px !important;
     }
 
-    /* [핵심 3] 모바일용 초소형 버튼 스타일 */
+    /* 버튼 기본 스타일 */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
         border-radius: 4px;
         width: 100%;
-        height: 50px !important;     /* 높이 고정 */
-        padding: 0px !important;     /* 여백 삭제 */
-        font-size: 9px !important;   /* 글씨 아주 작게 */
-        white-space: pre-wrap !important; /* 줄바꿈 허용 */
-        line-height: 1.1 !important;
-        margin: 0px !important;
+        height: 55px;
+        white-space: pre-wrap; /* 줄바꿈 허용 */
+        margin-bottom: 2px;
     }
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
 
     /* 요일 헤더 스타일 */
     .day-header {
-        font-size: 10px;
+        font-size: 11px;
         text-align: center;
-        margin-bottom: 5px;
+        margin-bottom: 2px;
         font-weight: bold;
     }
-    .sun { color: #FF5252; } /* 일요일 빨강 */
-    .sat { color: #448AFF; } /* 토요일 파랑 */
-    .wday { color: #AAAAAA; } /* 평일 회색 */
+    .sunday { color: #FF5252; }
+    .saturday { color: #448AFF; }
+    .weekday { color: #AAAAAA; }
 
     /* 카드 및 기타 */
     .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
@@ -124,23 +137,21 @@ else:
             st.rerun()
 
     # ----------------------------------
-    # [A] 사용자: 가로 7칸 강제 고정 달력
+    # [A] 사용자: 진짜 7칸 고정 달력
     # ----------------------------------
     if st.session_state.user_role == "user":
         
         if st.session_state.page == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # [헤더] 일~토 (7칸)
-            # st.columns(7)을 쓰면 Streamlit이 모바일에서 세로로 바꾸려고 하겠지만,
-            # 위에서 정의한 CSS(flex-wrap: nowrap)가 그걸 막아서 가로로 나옵니다.
+            # [헤더] 일~토 (7칸) - 색상 적용
             cols = st.columns(7)
-            days_labels = [('일', 'sun'), ('월', 'wday'), ('화', 'wday'), ('수', 'wday'), ('목', 'wday'), ('금', 'wday'), ('토', 'sat')]
+            days_labels = [('일', 'sunday'), ('월', 'weekday'), ('화', 'weekday'), ('수', 'weekday'), ('목', 'weekday'), ('금', 'weekday'), ('토', 'saturday')]
             
             for i, (day_text, css_cls) in enumerate(days_labels):
                 cols[i].markdown(f"<div class='day-header {css_cls}'>{day_text}</div>", unsafe_allow_html=True)
             
-            # 달력 날짜 생성 (일요일 시작)
+            # [달력 본문] 일요일 시작
             cal = calendar.Calendar(firstweekday=6)
             month_days = cal.monthdayscalendar(2026, 2)
             
@@ -150,8 +161,7 @@ else:
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            # 버튼 내용: 날짜 + 줄바꿈 + 메뉴명 (짧게)
-                            # 모바일에서는 글씨가 9px로 나옵니다.
+                            # 날짜 + 줄바꿈 + 메뉴명
                             btn_text = f"{day}\n{info['name']}"
                             
                             if st.button(btn_text, key=f"d_{day}"):
@@ -159,10 +169,10 @@ else:
                                 st.session_state.page = "detail"
                                 st.rerun()
                         else:
-                            # 빈 칸은 투명 버튼으로 자리만 차지
-                            st.markdown("<div style='height:50px;'></div>", unsafe_allow_html=True)
+                            # 빈 칸 처리 (투명 버튼)
+                            st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
                 
-                # 주(Week) 간격
+                # 주(Week) 간격 미세하게
                 st.write("")
 
         # 상세 페이지 (기존 유지)
