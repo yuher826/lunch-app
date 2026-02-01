@@ -8,15 +8,31 @@ from datetime import datetime
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
 # ==============================================================
-# [핵심 기능] 3글자마다 줄바꿈 해주는 함수 (사장님 아이디어!)
+# [핵심 함수] 3글자씩 자르고, 2줄 넘어가면 '..' 붙이기
 # ==============================================================
-def make_multiline(text, chunk_size=3):
-    """긴 메뉴명을 chunk_size(3글자)마다 잘라서 줄바꿈(\n)을 넣어줍니다."""
-    if not text: return ""
-    # 3글자씩 잘라서 리스트로 만듦 -> 다시 줄바꿈으로 합침
-    return '\n'.join([text[i:i+chunk_size] for i in range(0, len(text), chunk_size)])
+def format_menu_for_mobile(day, menu_name):
+    # 1. 메뉴 이름을 3글자씩 자릅니다 (화면 폭에 맞추기 위해)
+    chunk_size = 3
+    chunks = [menu_name[i:i+chunk_size] for i in range(0, len(menu_name), chunk_size)]
+    
+    # 2. 첫째 줄(날짜)
+    text = f"{day}\n"
+    
+    # 3. 둘째 줄 (메뉴 앞 3글자)
+    if len(chunks) > 0:
+        text += f"{chunks[0]}\n"
+        
+    # 4. 셋째 줄 (나머지 처리)
+    if len(chunks) > 1:
+        # 만약 뒤에 더 있으면 3글자만 보여주고 .. 붙임 (공간 부족 방지)
+        if len(chunks) > 2:
+            text += f"{chunks[1]}.." 
+        else:
+            text += f"{chunks[1]}"
+            
+    return text
 
-# 2. [디자인] 3단 쌓기 최적화 CSS
+# 2. [디자인] 글자 욱여넣기 CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -25,10 +41,10 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
     /* -------------------------------------------------------- */
-    /* [모바일] 768px 이하: 7칸 격자 + 3글자 줄바꿈 최적화 */
+    /* [모바일] 768px 이하: 3글자 가로 확보를 위한 극한의 다이어트 */
     /* -------------------------------------------------------- */
     @media (max-width: 768px) {
-        /* 1. 7칸 격자 (뼈대 유지) */
+        /* 1. 7칸 격자 프레임 */
         div[data-testid="stHorizontalBlock"] {
             display: grid !important;
             grid-template-columns: repeat(7, 1fr) !important;
@@ -43,35 +59,29 @@ st.markdown("""
             padding: 0px !important;
         }
         
-        /* 2. 버튼 내부 스타일 (층층이 쌓기) */
+        /* 2. 버튼 스타일 (내부 공간 확보) */
         div.stButton > button {
             width: 100% !important;
-            height: 65px !important;     /* 3~4줄까지 커버 가능한 높이 */
-            padding: 2px 0px !important; /* 여백 최소화 */
+            height: 60px !important;     /* 3줄 들어갈 높이 */
+            padding: 2px 0px !important; /* [중요] 옆 여백 제거 (글자 공간 확보) */
             border-radius: 4px !important;
+            margin: 0px !important;
             
-            /* 폰트 설정 */
-            font-size: 9px !important;   /* 글씨 크기 적당히 */
-            line-height: 1.25 !important; /* 줄 간격 (너무 붙지 않게) */
+            /* 폰트 설정 (3글자가 들어가도록) */
+            font-size: 9px !important;   
+            letter-spacing: -0.5px !important; /* [중요] 자간을 좁혀서 3글자 욱여넣기 */
+            line-height: 1.25 !important;
             
             /* 줄바꿈 설정 */
-            white-space: pre-wrap !important; /* \n(엔터)를 있는 그대로 표현 */
-            word-break: break-all !important; /* 단어 중간이라도 쪼개기 */
-            
-            /* 배치: 위에서부터 아래로 */
-            display: flex !important;
-            flex-direction: column !important;
-            justify-content: flex-start !important;
-            align-items: center !important;
+            white-space: pre-wrap !important; /* \n 인식 */
+            word-break: break-all !important; 
         }
         
         /* 요일 헤더 */
-        .day-header { font-size: 10px !important; margin-bottom: 3px !important; }
+        .day-header { font-size: 10px !important; margin-bottom: 3px !important; letter-spacing: -1px; }
     }
 
-    /* -------------------------------------------------------- */
-    /* [PC] 큰 화면 스타일 */
-    /* -------------------------------------------------------- */
+    /* PC 화면 */
     div[data-testid="column"] { min-width: 0px !important; }
 
     /* 공통 버튼 스타일 */
@@ -80,7 +90,6 @@ st.markdown("""
         border: 1px solid #333;
         color: #E0E0E0;
         border-radius: 6px;
-        margin: 0px;
     }
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
     div.stButton > button:active { background-color: #2979FF; color: white; }
@@ -98,7 +107,7 @@ st.markdown("""
         color: white !important;
         height: 50px !important;
         font-size: 14px !important;
-        display: block !important;
+        letter-spacing: 0px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -113,8 +122,8 @@ if 'menu_db' not in st.session_state:
         5: {"name": "매콤안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
     }
     for i in range(6, 32):
-        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "오늘의셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
-        else: st.session_state.menu_db[i] = {"name": "주말브런치세트", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
+        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
+        else: st.session_state.menu_db[i] = {"name": "주말브런치", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
 
 if 'user_db' not in st.session_state: st.session_state.user_db = {"admin": "1234", "user": "1234"}
 if 'orders' not in st.session_state: st.session_state.orders = pd.DataFrame()
@@ -156,7 +165,7 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (3글자 줄바꿈 적용)
+        # [모드 1] 달력 화면
         if st.session_state.view_mode == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
@@ -178,11 +187,9 @@ else:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
                             
-                            # [★ 핵심 기술 적용 ★]
-                            # 1. 메뉴명을 3글자 단위로 자릅니다. (예: 큐브스\n테이크)
-                            # 2. 날짜와 메뉴 사이에 빈 줄(\n)을 하나 넣어 간격을 둡니다.
-                            formatted_menu = make_multiline(info['name'], 3)
-                            btn_text = f"{day}\n\n{formatted_menu}"
+                            # [핵심] 파이썬 함수로 '3글자씩 끊기' 처리된 텍스트를 받습니다.
+                            # 예: "1\n매콤안\n동찜닭.."
+                            btn_text = format_menu_for_mobile(day, info['name'])
                             
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
@@ -193,7 +200,7 @@ else:
             
             st.markdown("<br><p style='text-align:center; color:#666; font-size:12px;'>날짜를 누르면 상세 주문창으로 이동합니다.</p>", unsafe_allow_html=True)
 
-        # [모드 2] 상세 주문 화면 (변동 없음)
+        # [모드 2] 상세 주문 화면
         elif st.session_state.view_mode == "detail":
             sel_day = st.session_state.selected_date
             menu = st.session_state.menu_db.get(sel_day)
