@@ -182,7 +182,7 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (3글자 + 여백제로)
+        # [모드 1] 달력 화면 (3글자 강제 + 여백 삭제)
         if st.session_state.view_mode == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
@@ -204,8 +204,7 @@ else:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
                             
-                            # [핵심] 파이썬이 미리 3글자씩 잘라서 모양을 만듭니다.
-                            # 예: "1\n매콤안\n동찜닭.."
+                            # [핵심] 파이썬 함수로 '3글자씩 강제 개행'된 텍스트를 받습니다.
                             btn_text = make_label(day, info['name'])
                             
                             if st.button(btn_text, key=f"d_{day}"):
