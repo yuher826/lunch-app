@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 모바일 최적화 CSS (줄바꿈 절대 금지)
+# 2. [디자인] 모바일 강제 가로 정렬 CSS (초강력 미디어 쿼리 버전)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -16,35 +16,37 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심 1] 가로 배치 강제 (간격 삭제) */
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0px !important; 
-        padding: 0px !important;
+    /* [초강력] 모바일 화면(폭 768px 이하)에서 강제로 가로 정렬시키는 코드 */
+    @media only screen and (max-width: 768px) {
+        div[data-testid="column"] {
+            width: 20% !important;       /* 무조건 화면의 20% 차지 (5등분) */
+            flex: 0 0 20% !important;    /* 줄어들지 마! */
+            min-width: 0px !important;   /* 최소 너비 제한 해제 */
+            padding: 1px !important;     /* 간격 최소화 */
+        }
     }
-
-    /* [핵심 2] 컬럼 너비 20% 강제 고정 (절대 안 떨어짐) */
+    
+    /* PC 화면에서도 5등분 유지 */
     div[data-testid="column"] {
-        flex: 1 1 20% !important;
         width: 20% !important;
+        flex: 1 1 20% !important;
         min-width: 0px !important;
-        padding: 1px !important;
-        margin: 0px !important;
     }
 
-    /* 입력창 디자인 */
+    /* 입력창 스타일 */
     .stTextInput > div > div > input, .stSelectbox > div > div > div, .stNumberInput > div > div > input {
         color: white; background-color: #2C2C2C; border: none;
     }
     
-    /* 날짜 버튼 디자인 (작게해서 공간 확보) */
+    /* 날짜 버튼 디자인 (작고 깔끔하게) */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
-        border-radius: 4px;
+        border-radius: 6px;
         width: 100%;
-        padding: 2px 0px !important;
-        font-size: 10px !important; /* 글씨 작게 */
+        padding: 0px !important;
+        font-size: 11px !important; /* 글씨 크기 모바일 최적화 */
         height: 55px !important;
         white-space: pre-wrap !important;
         line-height: 1.2 !important;
@@ -64,8 +66,8 @@ st.markdown("""
     .highlight { color: #2979FF; font-weight: bold; }
     
     /* 탭 스타일 */
-    .stTabs [data-baseweb="tab-list"] { gap: 4px; }
-    .stTabs [data-baseweb="tab"] { background-color: #1E1E1E; border-radius: 8px; color: white; font-size: 0.75rem; padding: 4px 8px; }
+    .stTabs [data-baseweb="tab-list"] { gap: 5px; }
+    .stTabs [data-baseweb="tab"] { background-color: #1E1E1E; border-radius: 8px; color: white; font-size: 0.8rem; }
     .stTabs [aria-selected="true"] { background-color: #2979FF !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -85,10 +87,7 @@ if 'menu_db' not in st.session_state:
         else:
              st.session_state.menu_db[i] = {"name": "주말특식", "full_name": "주말 스페셜 브런치", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
 
-# 사용자 DB (계정 찾기용)
 if 'user_db' not in st.session_state: st.session_state.user_db = {"admin": "1234", "user": "1234"}
-if 'user_info' not in st.session_state: st.session_state.user_info = {"admin": {"name":"사장님", "no":"0000"}, "user": {"name":"홍길동", "no":"1001"}} # 사원번호 예시
-
 if 'orders' not in st.session_state: st.session_state.orders = pd.DataFrame()
 if 'purchases' not in st.session_state: st.session_state.purchases = pd.DataFrame()
 if 'history_df' not in st.session_state: 
@@ -101,19 +100,16 @@ if 'selected_date' not in st.session_state: st.session_state.selected_date = dat
 if 'page' not in st.session_state: st.session_state.page = "calendar"
 
 # ==========================================
-# [화면 1] 로그인 / 회원가입 / 계정찾기
+# [화면 1] 로그인
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; color: #2979FF; font-size: 3rem;'>12:10</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #888;'>Premium Lunch Service</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #888;'>직장인을 위한 점심 구독</p>", unsafe_allow_html=True)
     
     with st.container():
         st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
-        # 탭 3개로 확장
-        tab1, tab2, tab3 = st.tabs(["로그인", "회원가입", "계정 찾기"])
-        
-        # 1. 로그인
+        tab1, tab2 = st.tabs(["로그인", "회원가입"])
         with tab1:
             id_in = st.text_input("아이디", key="login_id")
             pw_in = st.text_input("비밀번호", type="password", key="login_pw")
@@ -123,37 +119,14 @@ if not st.session_state.logged_in:
                     st.session_state.user_name = id_in
                     st.session_state.user_role = "admin" if id_in == "admin" else "user"
                     st.rerun()
-                else: st.error("정보가 일치하지 않습니다.")
-        
-        # 2. 회원가입
+                else: st.error("아이디/비번 확인")
         with tab2:
             new_id = st.text_input("새 아이디")
             new_pw = st.text_input("새 비밀번호", type="password")
-            new_name = st.text_input("이름 (실명)")
             if st.button("가입하기", use_container_width=True):
-                if new_id and new_pw:
+                if new_id:
                     st.session_state.user_db[new_id] = new_pw
-                    st.session_state.user_info[new_id] = {"name": new_name, "no": "9999"}
-                    st.success("가입 완료! 로그인 탭으로 가세요.")
-        
-        # 3. 계정 찾기 (NEW!)
-        with tab3:
-            st.caption("이름과 사원번호를 입력하세요.")
-            find_name = st.text_input("이름")
-            find_no = st.text_input("사원번호 (예: 1001)")
-            
-            if st.button("내 계정 찾기", use_container_width=True):
-                found = False
-                for uid, info in st.session_state.user_info.items():
-                    if info['name'] == find_name and info['no'] == find_no:
-                        found_pw = st.session_state.user_db[uid]
-                        st.success(f"회원님의 정보입니다.\n\n아이디: {uid}\n비밀번호: {found_pw}")
-                        found = True
-                        break
-                if not found:
-                    st.error("일치하는 정보가 없습니다. 관리자에게 문의하세요.")
-                    st.caption("테스트용: 홍길동 / 1001")
-
+                    st.success("가입 완료!")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
@@ -167,48 +140,51 @@ else:
             st.rerun()
 
     # ----------------------------------
-    # [A] 사용자 화면 (5칸 강제 고정 달력)
+    # [A] 사용자: 5칸 가로 정렬 달력
     # ----------------------------------
     if st.session_state.user_role == "user":
         
         if st.session_state.page == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # 헤더: 월화수목금 (5칸) - 1,1,1,1,1 비율 강제
+            # 헤더: 월화수목금 (5칸)
             days = ['월', '화', '수', '목', '금']
-            cols = st.columns([1,1,1,1,1])
+            cols = st.columns(5)
             for i, d in enumerate(days):
                 cols[i].markdown(f"<div style='text-align:center; font-size:11px; color:#888;'>{d}</div>", unsafe_allow_html=True)
             
             cal = calendar.monthcalendar(2026, 2)
             
+            # 주(Week) 단위 루프
             for week_idx, week in enumerate(cal):
+                
                 # 1. 평일 (월~금) -> 윗줄
-                cols = st.columns([1,1,1,1,1])
+                cols = st.columns(5)
                 for i in range(5):
                     day = week[i]
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
+                            # [수정] 괄호 제거, 날짜+메뉴명만 표시
                             btn_text = f"{day}\n{info['name']}"
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
                                 st.rerun()
                         else:
-                            # 모양 유지를 위한 투명 버튼
-                            st.markdown("<div style='height:55px;'></div>", unsafe_allow_html=True)
+                            st.write("")
                 
                 # 2. 주말 (토~일) -> 아랫줄
                 if week[5] != 0 or week[6] != 0:
-                    cols_weekend = st.columns([1,1,1,1,1]) # 똑같은 5칸 그리드 사용
+                    cols_weekend = st.columns(5) # 5칸 그리드 유지
                     
                     # 토요일
                     with cols_weekend[0]:
                         day = week[5]
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            btn_text = f"{day}(토)\n{info['name']}"
+                            # [수정] 괄호 제거
+                            btn_text = f"{day}\n{info['name']}"
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
@@ -219,7 +195,8 @@ else:
                         day = week[6]
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            btn_text = f"{day}(일)\n{info['name']}"
+                            # [수정] 괄호 제거
+                            btn_text = f"{day}\n{info['name']}"
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
