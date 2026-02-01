@@ -4,7 +4,7 @@ import numpy as np
 from datetime import datetime
 
 # 1. 페이지 설정
-st.set_page_config(page_title="12:10 든든밀", layout="wide")
+st.set_page_config(page_title="12:10", layout="wide")
 
 # 2. [디자인] 고급 파스텔 & 리스트형 CSS
 st.markdown("""
@@ -245,3 +245,4 @@ else:
             st.dataframe(st.session_state.orders)
         else:
             st.write("아직 주문이 없습니다.")
+
