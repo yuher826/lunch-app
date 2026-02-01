@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 모바일 반응형 최적화 CSS (사장님 말씀대로 폰트 줄이고 화면 맞춤)
+# 2. [디자인] 모바일 강제 7등분 고정 CSS (초강력 버전)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -15,59 +15,55 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심 기술] 화면 폭이 768px 이하(모바일)일 때만 적용되는 반응형 코드 */
-    @media (max-width: 768px) {
-        /* 가로 정렬 유지 (세로로 떨어지는 것 방지) */
-        div[data-testid="column"] {
-            flex: 1 1 13% !important; /* 7등분이니까 약 13~14% */
-            width: 13% !important;
-            min-width: 0px !important; /* 좁아도 허용 */
-            padding: 0px 1px !important; /* 옆 간격 거의 없앰 */
-            margin: 0px !important;
-        }
-
-        /* 버튼 안의 글씨 크기를 확 줄임 (화면에 맞추기 위해) */
-        div.stButton > button {
-            font-size: 10px !important;  /* 글씨 작게 */
-            padding: 2px 0px !important; /* 버튼 안 여백 제거 */
-            height: 45px !important;     /* 버튼 높이 조절 */
-            line-height: 1.1 !important; /* 줄 간격 좁게 */
-        }
-        
-        /* 요일 헤더 글씨도 작게 */
-        .day-header { font-size: 10px !important; }
+    /* [핵심 1] 모바일에서도 가로 정렬 강제 유지 (줄바꿈 금지) */
+    div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important; /* 절대 줄바꿈 하지 마! */
+        gap: 1px !important;
+        overflow-x: hidden !important;
     }
 
-    /* PC 화면에서는 좀 더 여유롭게 */
-    @media (min-width: 769px) {
-        div[data-testid="column"] {
-            flex: 1 1 14.2% !important;
-            width: 14.2% !important;
-        }
+    /* [핵심 2] 컬럼 너비 14.28% (1/7) 강제 고정 */
+    div[data-testid="column"] {
+        flex: 1 1 14.28% !important;
+        width: 14.28% !important;
+        min-width: 0px !important; /* 내용이 커도 강제로 줄임 */
+        padding: 0px !important;
+        margin: 0px !important;
     }
 
-    /* 버튼 기본 스타일 (공통) */
+    /* [핵심 3] 모바일용 초소형 버튼 스타일 */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
-        border-radius: 5px;
+        border-radius: 4px;
         width: 100%;
-        height: 65px;
-        white-space: pre-wrap; /* 줄바꿈 허용 */
-        margin-bottom: 2px;
+        height: 50px !important;     /* 높이 고정 */
+        padding: 0px !important;     /* 여백 삭제 */
+        font-size: 9px !important;   /* 글씨 아주 작게 */
+        white-space: pre-wrap !important; /* 줄바꿈 허용 */
+        line-height: 1.1 !important;
+        margin: 0px !important;
     }
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
 
-    /* 요일 색상 및 스타일 */
-    .sunday { color: #FF5252; font-weight: bold; text-align: center; margin-bottom: 5px; }
-    .saturday { color: #448AFF; font-weight: bold; text-align: center; margin-bottom: 5px; }
-    .weekday { color: #AAAAAA; text-align: center; margin-bottom: 5px; }
-    
-    /* 기타 디자인 */
-    h1, h2, h3, h4 { color: #FFFFFF !important; }
+    /* 요일 헤더 스타일 */
+    .day-header {
+        font-size: 10px;
+        text-align: center;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .sun { color: #FF5252; } /* 일요일 빨강 */
+    .sat { color: #448AFF; } /* 토요일 파랑 */
+    .wday { color: #AAAAAA; } /* 평일 회색 */
+
+    /* 카드 및 기타 */
     .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
     .highlight { color: #2979FF; font-weight: bold; }
+    h1, h2, h3 { color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -106,20 +102,15 @@ if not st.session_state.logged_in:
     
     with st.container():
         st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
-        tab1, tab2 = st.tabs(["로그인", "회원가입"])
-        with tab1:
-            id_in = st.text_input("아이디", key="login_id")
-            pw_in = st.text_input("비밀번호", type="password", key="login_pw")
-            if st.button("로그인", type="primary", use_container_width=True):
-                if id_in in st.session_state.user_db and st.session_state.user_db[id_in] == pw_in:
-                    st.session_state.logged_in = True
-                    st.session_state.user_name = id_in
-                    st.session_state.user_role = "admin" if id_in == "admin" else "user"
-                    st.rerun()
-                else: st.error("정보 불일치")
-        with tab2:
-            st.write("회원가입 기능 (생략)")
-            if st.button("가입"): st.success("가입됨")
+        id_in = st.text_input("아이디", key="login_id")
+        pw_in = st.text_input("비밀번호", type="password", key="login_pw")
+        if st.button("로그인", type="primary", use_container_width=True):
+            if id_in in st.session_state.user_db and st.session_state.user_db[id_in] == pw_in:
+                st.session_state.logged_in = True
+                st.session_state.user_name = id_in
+                st.session_state.user_role = "admin" if id_in == "admin" else "user"
+                st.rerun()
+            else: st.error("정보 불일치")
         st.markdown("</div>", unsafe_allow_html=True)
 
 # ==========================================
@@ -132,21 +123,25 @@ else:
             st.session_state.logged_in = False
             st.rerun()
 
+    # ----------------------------------
+    # [A] 사용자: 가로 7칸 강제 고정 달력
+    # ----------------------------------
     if st.session_state.user_role == "user":
         
         if st.session_state.page == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # 요일 헤더 (사진처럼 일요일 시작, 색상 적용)
+            # [헤더] 일~토 (7칸)
+            # st.columns(7)을 쓰면 Streamlit이 모바일에서 세로로 바꾸려고 하겠지만,
+            # 위에서 정의한 CSS(flex-wrap: nowrap)가 그걸 막아서 가로로 나옵니다.
             cols = st.columns(7)
-            days_labels = [('일', 'sunday'), ('월', 'weekday'), ('화', 'weekday'), ('수', 'weekday'), ('목', 'weekday'), ('금', 'weekday'), ('토', 'saturday')]
+            days_labels = [('일', 'sun'), ('월', 'wday'), ('화', 'wday'), ('수', 'wday'), ('목', 'wday'), ('금', 'wday'), ('토', 'sat')]
             
-            for i, (day_text, css_class) in enumerate(days_labels):
-                # .day-header 클래스 추가 (모바일에서 글씨 작게 하려고)
-                cols[i].markdown(f"<div class='{css_class} day-header'>{day_text}</div>", unsafe_allow_html=True)
+            for i, (day_text, css_cls) in enumerate(days_labels):
+                cols[i].markdown(f"<div class='day-header {css_cls}'>{day_text}</div>", unsafe_allow_html=True)
             
-            # 달력 데이터 (일요일 시작)
-            cal = calendar.Calendar(firstweekday=6) 
+            # 달력 날짜 생성 (일요일 시작)
+            cal = calendar.Calendar(firstweekday=6)
             month_days = cal.monthdayscalendar(2026, 2)
             
             for week in month_days:
@@ -155,7 +150,8 @@ else:
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            # 날짜만 크게, 메뉴명은 작게 (줄바꿈)
+                            # 버튼 내용: 날짜 + 줄바꿈 + 메뉴명 (짧게)
+                            # 모바일에서는 글씨가 9px로 나옵니다.
                             btn_text = f"{day}\n{info['name']}"
                             
                             if st.button(btn_text, key=f"d_{day}"):
@@ -163,38 +159,42 @@ else:
                                 st.session_state.page = "detail"
                                 st.rerun()
                         else:
-                            # 빈 칸은 투명 박스로 자리만 차지하게 (모양 유지)
-                            st.markdown("<div style='height:45px'></div>", unsafe_allow_html=True)
+                            # 빈 칸은 투명 버튼으로 자리만 차지
+                            st.markdown("<div style='height:50px;'></div>", unsafe_allow_html=True)
                 
-                # 줄 간격 아주 살짝
+                # 주(Week) 간격
                 st.write("")
 
+        # 상세 페이지 (기존 유지)
         elif st.session_state.page == "detail":
             sel_day = st.session_state.selected_date
             menu = st.session_state.menu_db.get(sel_day)
             
-            if st.button("← 뒤로가기"):
+            if st.button("← 달력으로 돌아가기"):
                 st.session_state.page = "calendar"
                 st.rerun()
                 
             st.markdown(f"<div class='menu-card'>", unsafe_allow_html=True)
-            st.markdown(f"<span class='highlight'>{sel_day}일</span> 메뉴", unsafe_allow_html=True)
+            st.markdown(f"<span class='highlight'>{sel_day}일</span>의 메뉴", unsafe_allow_html=True)
             st.markdown(f"<h3>{menu['full_name']}</h3>", unsafe_allow_html=True)
             st.image(menu['img'], use_container_width=True)
             
             c1, c2 = st.columns(2)
-            with c1: st.markdown(f"🔥 {menu['kcal']}")
-            with c2: st.markdown(f"💰 {menu['price']:,}원")
+            with c1: st.markdown(f"🔥 **{menu['kcal']}**")
+            with c2: st.markdown(f"💰 **{menu['price']:,}원**")
             
             with st.form("order"):
                 qty = st.number_input("수량", 1, 10, 1)
-                loc = st.selectbox("수령", ["스마트베이", "오비즈", "동일"])
+                loc = st.selectbox("수령장소", ["스마트베이", "오비즈", "동일"])
                 if st.form_submit_button("주문하기", type="primary", use_container_width=True):
                     new_ord = {'날짜': f"2026-02-{sel_day}", '고객명': st.session_state.user_name, '메뉴': menu['full_name'], '수량': qty, '합계': qty*menu['price'], '거점': loc}
                     st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
                     st.success("주문 완료!")
             st.markdown("</div>", unsafe_allow_html=True)
 
+    # ----------------------------------
+    # [B] 관리자 모드
+    # ----------------------------------
     elif st.session_state.user_role == "admin":
         st.markdown("### 📊 관리자 모드")
         df_ord = st.session_state.orders
