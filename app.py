@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 4칸 전용 강제 고정 CSS
+# 2. [디자인] 초강력 압축 CSS (간격 0, 최소너비 0)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -15,41 +15,37 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심] 모바일에서 컬럼 세로 풀림 방지 (4등분 = 25%) */
-    @media (max-width: 768px) {
-        div[data-testid="column"] {
-            flex: 0 0 25% !important; /* 4칸이니까 25% */
-            width: 25% !important;
-            min-width: 0px !important;
-            padding: 2px !important;
-        }
+    /* [핵심 1] 컬럼 사이 간격(Gap) 완전 제거 */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0px !important;
     }
 
-    /* PC에서도 4등분 */
+    /* [핵심 2] 컬럼 강제 축소 (최소 너비 0 설정 -> 이게 있어야 폰에서 가로로 나옴) */
     div[data-testid="column"] {
-        flex: 0 0 25% !important;
-        width: 25% !important;
-        min-width: 0px !important;
+        flex: 1 1 0px !important; /* 공간을 1/n로 공평하게 나눔 */
+        min-width: 0px !important; /* ★제일 중요: 내용물이 커도 강제로 줄임 */
+        padding: 1px !important;   /* 좌우 여백 1px만 남김 */
+        margin: 0px !important;
     }
 
-    /* 버튼 스타일 */
+    /* 버튼 스타일 (작고 단단하게) */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
-        border-radius: 6px;
+        border-radius: 4px;
         width: 100%;
-        height: 60px !important;
-        padding: 0px !important;
-        font-size: 12px !important; /* 글씨 크기 적당하게 */
-        white-space: pre-wrap;
-        line-height: 1.3;
+        height: 55px !important;
+        padding: 0px !important;    /* 내부 여백 제거 */
+        font-size: 11px !important; /* 글씨 작게 */
+        white-space: pre-wrap !important; /* 줄바꿈 허용 */
+        line-height: 1.2 !important;
     }
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
     
-    /* 카드 및 텍스트 */
-    .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
+    /* 기타 디자인 */
     h1, h2, h3, h4 { color: #FFFFFF !important; }
+    .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
     .highlight { color: #2979FF; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
@@ -73,7 +69,6 @@ if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'selected_date' not in st.session_state: st.session_state.selected_date = datetime.now().day
 if 'page' not in st.session_state: st.session_state.page = "calendar"
 
-# 요일 계산 함수 (월, 화, 수...)
 def get_day_kor(year, month, day):
     return ["월", "화", "수", "목", "금", "토", "일"][calendar.weekday(year, month, day)]
 
@@ -108,69 +103,33 @@ else:
             st.session_state.logged_in = False
             st.rerun()
 
-    # ----------------------------------
-    # [A] 사용자: 4칸 바둑판 달력 (가장 안전한 방식)
-    # ----------------------------------
     if st.session_state.user_role == "user":
-        
         if st.session_state.page == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # 2월 1일 ~ 28일까지 날짜 리스트 생성
-            days_in_month = range(1, 29)
+            # 헤더: 월화수목금 (5칸 가로 정렬)
+            days = ['월', '화', '수', '목', '금']
+            cols = st.columns(5)
+            for i, d in enumerate(days):
+                cols[i].markdown(f"<div style='text-align:center; font-size:12px; color:#888;'>{d}</div>", unsafe_allow_html=True)
             
-            # 4개씩 끊어서 배치 (Chunking)
-            for i in range(0, len(days_in_month), 4):
-                cols = st.columns(4) # 무조건 4칸
-                
-                # 현재 줄에 들어갈 4개의 날짜 가져오기
-                current_days = days_in_month[i : i+4]
-                
-                for idx, day in enumerate(current_days):
-                    with cols[idx]:
-                        info = st.session_state.menu_db.get(day, {"name": ""})
-                        day_str = get_day_kor(2026, 2, day) # 요일 구하기
-                        
-                        # 버튼 텍스트: "1 (일) \n 메뉴이름"
-                        btn_text = f"{day} ({day_str})\n{info['name']}"
-                        
-                        if st.button(btn_text, key=f"d_{day}"):
-                            st.session_state.selected_date = day
-                            st.session_state.page = "detail"
-                            st.rerun()
-                
-                # 줄바꿈 간격 살짝
-                st.write("")
-
-        # 상세 페이지 (기존 유지)
-        elif st.session_state.page == "detail":
-            sel_day = st.session_state.selected_date
-            menu = st.session_state.menu_db.get(sel_day)
-            day_str = get_day_kor(2026, 2, sel_day)
+            cal = calendar.monthcalendar(2026, 2)
             
-            if st.button("← 뒤로가기"):
-                st.session_state.page = "calendar"
-                st.rerun()
-                
-            st.markdown(f"<div class='menu-card'>", unsafe_allow_html=True)
-            st.markdown(f"<span class='highlight'>{sel_day}일 ({day_str})</span>의 메뉴", unsafe_allow_html=True)
-            st.markdown(f"<h3>{menu['full_name']}</h3>", unsafe_allow_html=True)
-            st.image(menu['img'], use_container_width=True)
-            
-            c1, c2 = st.columns(2)
-            with c1: st.markdown(f"🔥 **{menu['kcal']}**")
-            with c2: st.markdown(f"💰 **{menu['price']:,}원**")
-            
-            with st.form("order"):
-                qty = st.number_input("수량", 1, 10, 1)
-                loc = st.selectbox("수령장소", ["스마트베이", "오비즈타워", "동일테크노"])
-                if st.form_submit_button("주문하기", type="primary", use_container_width=True):
-                    new_ord = {'날짜': f"2026-02-{sel_day}", '고객명': st.session_state.user_name, '메뉴': menu['full_name'], '수량': qty, '합계': qty*menu['price'], '거점': loc}
-                    st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
-                    st.success("주문 완료!")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-    # 관리자 모드 (기존 유지)
-    elif st.session_state.user_role == "admin":
-        st.markdown("### 📊 관리자 모드")
-        st.dataframe(st.session_state.orders, use_container_width=True)
+            for week in cal:
+                # 1. 평일 (월~금) -> 5칸 강제 압축
+                cols = st.columns(5)
+                for i in range(5):
+                    day = week[i]
+                    with cols[i]:
+                        if day != 0:
+                            info = st.session_state.menu_db.get(day, {"name": ""})
+                            day_str = get_day_kor(2026, 2, day)
+                            # 버튼 내용: 날짜(요일) + 줄바꿈 + 메뉴명
+                            btn_text = f"{day}({day_str})\n{info['name']}"
+                            if st.button(btn_text, key=f"d_{day}"):
+                                st.session_state.selected_date = day
+                                st.session_state.page = "detail"
+                                st.rerun()
+                        else:
+                            # 빈 공간도 칸 차지
+                            st.write("")
