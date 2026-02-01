@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 강철 격자(Grid) 테이블 CSS (절대 안 깨짐)
+# 2. [디자인] 강철 격자 + 메뉴명 포함 CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -15,54 +15,63 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심 기술] Flexbox를 버리고 CSS Grid(격자) 시스템 도입 */
-    /* 모바일에서 수평 블록을 무조건 7등분 격자로 변경 */
+    /* -------------------------------------------------------- */
+    /* [모바일] 768px 이하 화면에서 적용되는 스타일 */
+    /* -------------------------------------------------------- */
     @media (max-width: 768px) {
+        /* 1. 가로 7칸 강제 격자 (절대 안 깨짐) */
         div[data-testid="stHorizontalBlock"] {
             display: grid !important;
-            grid-template-columns: repeat(7, 1fr) !important; /* 7개 컬럼 강제 분할 */
-            gap: 2px !important; /* 칸 사이 간격 2px */
+            grid-template-columns: repeat(7, 1fr) !important;
+            gap: 1px !important;
             padding: 0px !important;
         }
         
-        /* 기존 컬럼의 유연성 제거 (격자에 갇히게 함) */
         div[data-testid="column"] {
             width: auto !important;
             flex: none !important;
             min-width: 0px !important;
         }
         
-        /* 버튼 글씨 및 크기 강제 축소 */
+        /* 2. 모바일용 버튼 스타일 (깨알 글씨 + 꽉 채우기) */
         div.stButton > button {
-            font-size: 10px !important;
-            height: 40px !important;
-            padding: 0px !important;
-            border-radius: 4px !important;
+            font-size: 8px !important;   /* 글씨 아주 작게 */
+            height: 55px !important;     /* 높이를 키워서 메뉴명 공간 확보 */
+            padding: 2px 0px !important; /* 내부 여백 최소화 */
+            line-height: 1.2 !important; /* 줄간격 좁게 */
+            border-radius: 4px !important; /* 네모나게 */
+            white-space: pre-wrap !important; /* 줄바꿈 허용 */
+            vertical-align: top !important;
         }
         
-        /* 요일 헤더 */
-        .day-header { font-size: 10px !important; margin-bottom: 5px !important; }
+        /* 요일 헤더 작게 */
+        .day-header { font-size: 10px !important; margin-bottom: 2px !important; }
     }
 
-    /* PC에서도 7등분 유지 */
+    /* -------------------------------------------------------- */
+    /* [PC] 큰 화면 스타일 */
+    /* -------------------------------------------------------- */
     div[data-testid="column"] { min-width: 0px !important; }
 
-    /* 버튼 스타일 (어두운 카드 느낌) */
+    /* 버튼 기본 스타일 (공통) */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
         width: 100%;
-        height: 50px;
+        height: 65px; /* 기본 높이 */
         margin: 0px;
+        border-radius: 6px;
+        transition: 0.2s;
     }
     
-    /* 오늘 날짜 및 선택 날짜 강조 */
-    div.stButton > button:focus { border: 1px solid #2979FF; color: #2979FF; }
+    /* 버튼 클릭/호버 효과 */
+    div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
     div.stButton > button:active { background-color: #2979FF; color: white; }
+    div.stButton > button:focus { border: 1px solid #2979FF; }
 
     /* 요일 색상 */
-    .day-header { text-align: center; font-weight: bold; font-size: 12px; }
+    .day-header { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; }
     .sun { color: #FF5252; }
     .sat { color: #448AFF; }
     .wday { color: #AAAAAA; }
@@ -71,12 +80,12 @@ st.markdown("""
     .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
     .highlight { color: #2979FF; font-weight: bold; }
     
-    /* 버튼 꽉 차게 */
+    /* 뒤로가기 버튼 등 큰 버튼 */
     .big-btn > button {
         background-color: #2979FF !important;
         color: white !important;
         height: 50px !important;
-        border-radius: 8px !important;
+        font-size: 14px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -84,15 +93,16 @@ st.markdown("""
 # 3. 데이터 초기화
 if 'menu_db' not in st.session_state:
     st.session_state.menu_db = {
-        1: {"name": "직화제육", "full_name": "직화 제육 정식", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
-        2: {"name": "연어포케", "full_name": "생연어 포케볼", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
-        3: {"name": "스테이크", "full_name": "큐브 스테이크 덮밥", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
-        4: {"name": "닭가슴살", "full_name": "수비드 닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
-        5: {"name": "안동찜닭", "full_name": "매콤 안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
+        1: {"name": "직화제육", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
+        2: {"name": "연어포케", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
+        3: {"name": "큐브스테이크", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
+        4: {"name": "닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
+        5: {"name": "매콤찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
     }
+    # 이름이 너무 길면 잘리니까 4~5글자로 줄인 이름을 쓰는 게 좋습니다.
     for i in range(6, 32):
-        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "full_name": "오늘의 셰프 특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
-        else: st.session_state.menu_db[i] = {"name": "주말특식", "full_name": "주말 스페셜 브런치", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
+        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
+        else: st.session_state.menu_db[i] = {"name": "주말특식", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
 
 if 'user_db' not in st.session_state: st.session_state.user_db = {"admin": "1234", "user": "1234"}
 if 'orders' not in st.session_state: st.session_state.orders = pd.DataFrame()
@@ -134,37 +144,40 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (7xN 강철 격자)
+        # [모드 1] 달력 화면 (7xN 강철 격자 + 메뉴명)
         if st.session_state.view_mode == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # 요일 헤더 (일~토)
+            # 요일 헤더
             cols = st.columns(7)
             days = ['일', '월', '화', '수', '목', '금', '토']
             classes = ['sun', 'wday', 'wday', 'wday', 'wday', 'wday', 'sat']
             for i, (d, c) in enumerate(zip(days, classes)):
                 cols[i].markdown(f"<div class='day-header {c}'>{d}</div>", unsafe_allow_html=True)
             
-            # 달력 데이터
+            # 달력 본문
             cal = calendar.Calendar(firstweekday=6)
             month_days = cal.monthdayscalendar(2026, 2)
             
             for week in month_days:
-                # 여기가 핵심입니다. st.columns(7)을 쓰지만
-                # CSS에서 grid-template-columns: repeat(7, 1fr)로 강제 고정했습니다.
                 cols = st.columns(7)
                 for i, day in enumerate(week):
                     with cols[i]:
                         if day != 0:
-                            # 버튼에는 날짜 숫자만 표시 (공간 확보)
-                            if st.button(f"{day}", key=f"d_{day}"):
+                            info = st.session_state.menu_db.get(day, {"name": ""})
+                            
+                            # [핵심 변경] 날짜 + 줄바꿈 + 메뉴명
+                            # CSS에서 white-space: pre-wrap을 줬기 때문에 \n이 먹힙니다.
+                            btn_text = f"{day}\n{info['name']}"
+                            
+                            if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.view_mode = "detail"
                                 st.rerun()
                         else:
                             st.write("") # 빈 칸
             
-            st.markdown("<br><p style='text-align:center; color:#666; font-size:12px;'>날짜를 터치하여 메뉴를 확인하세요.</p>", unsafe_allow_html=True)
+            st.markdown("<br><p style='text-align:center; color:#666; font-size:12px;'>날짜를 누르면 상세 주문창으로 이동합니다.</p>", unsafe_allow_html=True)
 
         # [모드 2] 상세 주문 화면
         elif st.session_state.view_mode == "detail":
