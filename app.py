@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 가로쓰기 + 말줄임표(...) CSS
+# 2. [디자인] 갤럭시 캘린더 스타일 (Grid + 자동 줄바꿈)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -16,10 +16,10 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
     /* -------------------------------------------------------- */
-    /* [모바일] 768px 이하: 7칸 격자 + 텍스트 가로 정렬 + 말줄임 */
+    /* [모바일] 768px 이하: 7칸 격자 + 텍스트 줄바꿈 최적화 */
     /* -------------------------------------------------------- */
     @media (max-width: 768px) {
-        /* 1. 7칸 격자 프레임 */
+        /* 1. 7칸 격자 (절대 깨지지 않는 뼈대) */
         div[data-testid="stHorizontalBlock"] {
             display: grid !important;
             grid-template-columns: repeat(7, 1fr) !important;
@@ -34,27 +34,29 @@ st.markdown("""
             padding: 0px !important;
         }
         
-        /* 2. 버튼 내부 텍스트 제어 (핵심 기술) */
+        /* 2. 갤럭시 캘린더 스타일 버튼 */
         div.stButton > button {
-            /* 크기 및 여백 */
+            /* 크기 및 배치 */
             width: 100% !important;
-            height: 55px !important;     /* 3줄 들어갈 높이 확보 */
-            padding: 2px 0px !important;
-            border-radius: 4px !important;
+            height: 65px !important;     /* 메뉴 2~3줄 들어갈 높이 */
+            padding: 4px 1px !important; /* 내부 여백 */
+            border-radius: 6px !important;
             
-            /* 폰트 설정 */
-            font-size: 9px !important;   /* 가로로 들어가게 작게 */
-            line-height: 1.3 !important; /* 줄 간격 */
+            /* [핵심] 텍스트 배치: 위(날짜) -> 아래(메뉴) */
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important; /* 위쪽 정렬 */
+            align-items: center !important;
+            
+            /* [핵심] 폰트 및 줄바꿈 설정 */
+            font-size: 9px !important;
+            line-height: 1.3 !important;
             text-align: center !important;
             
-            /* [중요] 가로쓰기 및 말줄임표(...) 설정 */
-            display: -webkit-box !important;
-            -webkit-line-clamp: 3 !important; /* 최대 3줄까지만 표시 (날짜1 + 메뉴2) */
-            -webkit-box-orient: vertical !important;
-            overflow: hidden !important; /* 넘치는 글자 숨김 */
-            text-overflow: ellipsis !important; /* 넘치면 ... 표시 */
-            white-space: normal !important; /* 글자 자동 줄바꿈 허용 (가로로!) */
-            word-break: keep-all !important; /* 단어 중간에 끊지 않기 */
+            /* 가로로 쓰다가 꽉 차면 다음 줄로! (갤럭시 스타일) */
+            white-space: pre-wrap !important; /* \n 인식 + 자동 줄바꿈 */
+            word-break: break-all !important; /* 단어가 길면 쪼개서라도 줄바꿈 */
+            overflow: hidden !important; /* 칸 넘치면 숨김 */
         }
         
         /* 요일 헤더 */
@@ -74,6 +76,7 @@ st.markdown("""
         border-radius: 6px;
         margin: 0px;
     }
+    /* 오늘/선택 날짜 강조 */
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
     div.stButton > button:active { background-color: #2979FF; color: white; }
 
@@ -97,17 +100,16 @@ st.markdown("""
 
 # 3. 데이터 초기화
 if 'menu_db' not in st.session_state:
-    # [팁] 메뉴명이 길어도 CSS가 알아서 2줄로 끊고 ... 처리합니다.
     st.session_state.menu_db = {
-        1: {"name": "직화제육정식", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
-        2: {"name": "생연어포케", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
-        3: {"name": "큐브스테이크덮밥", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
-        4: {"name": "수비드닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
-        5: {"name": "매콤안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
+        1: {"name": "직화제육", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
+        2: {"name": "연어포케", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
+        3: {"name": "스테이크", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
+        4: {"name": "닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
+        5: {"name": "안동찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
     }
     for i in range(6, 32):
-        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "오늘의셰프특선요리", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
-        else: st.session_state.menu_db[i] = {"name": "주말브런치세트", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
+        if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
+        else: st.session_state.menu_db[i] = {"name": "주말특식", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
 
 if 'user_db' not in st.session_state: st.session_state.user_db = {"admin": "1234", "user": "1234"}
 if 'orders' not in st.session_state: st.session_state.orders = pd.DataFrame()
@@ -149,7 +151,7 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (7칸 격자 + 가로쓰기 + 말줄임표)
+        # [모드 1] 갤럭시 캘린더 스타일 (Grid + Wrapping)
         if st.session_state.view_mode == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
@@ -172,9 +174,8 @@ else:
                             info = st.session_state.menu_db.get(day, {"name": ""})
                             
                             # [핵심] 날짜 + 줄바꿈 + 메뉴명
-                            # CSS가 'pre-wrap'이 아닌 'normal'이지만
-                            # \n을 주면 첫 줄 바꿈은 인식하고,
-                            # 그 뒤 글자들은 좁으면 자동으로 다음 줄로 내려갑니다.
+                            # CSS에서 'pre-wrap'과 'break-all'을 줬기 때문에
+                            # 갤럭시 캘린더처럼 칸에 맞춰서 자동으로 줄이 바뀝니다.
                             btn_text = f"{day}\n{info['name']}"
                             
                             if st.button(btn_text, key=f"d_{day}"):
@@ -184,7 +185,7 @@ else:
                         else:
                             st.write("") 
             
-            st.markdown("<br><p style='text-align:center; color:#666; font-size:12px;'>날짜를 누르면 상세 주문창으로 이동합니다.</p>", unsafe_allow_html=True)
+            st.markdown("<br><p style='text-align:center; color:#666; font-size:12px;'>날짜를 터치하면 메뉴가 보입니다.</p>", unsafe_allow_html=True)
 
         # [모드 2] 상세 주문 화면
         elif st.session_state.view_mode == "detail":
