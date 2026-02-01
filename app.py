@@ -228,4 +228,60 @@ else:
         df_ord = st.session_state.orders
         df_buy = st.session_state.purchases
         
-        adm_tab1, adm_tab2, adm_tab3, adm_tab4 = st.tabs(["대시보드", "주문
+        adm_tab1, adm_tab2, adm_tab3, adm_tab4 = st.tabs(["대시보드", "주문/히트맵", "지출 관리", "월간 보고서"])
+        
+        with adm_tab1:
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
+                total_sales = df_ord['합계'].sum() if not df_ord.empty else 0
+                st.metric("총 매출액", f"{total_sales:,}원")
+                st.markdown("</div>", unsafe_allow_html=True)
+            with c2:
+                st.markdown("<div class='menu-card' style='text-align:center;'>", unsafe_allow_html=True)
+                total_qty = df_ord['수량'].sum() if not df_ord.empty else 0
+                st.metric("총 주문량", f"{total_qty}개")
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+            st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown("#### 일별 매출 추이")
+            if not df_ord.empty:
+                st.bar_chart(df_ord.groupby('날짜')['합계'].sum(), color="#2979FF")
+            else: st.info("아직 주문 내역이 없습니다.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with adm_tab2:
+            st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown("#### 실시간 주문 접수 현황")
+            st.dataframe(df_ord, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown("#### 메뉴 x 거점별 선호도 분석 (히트맵)")
+            if not df_ord.empty:
+                heatmap = pd.pivot_table(df_ord, values='수량', index='메뉴', columns='거점', aggfunc='sum', fill_value=0)
+                st.dataframe(heatmap.style.background_gradient(cmap='Blues'), use_container_width=True)
+            else: st.info("분석할 데이터가 부족합니다.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with adm_tab3:
+            st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown("#### 지출(매입) 영수증 등록")
+            with st.form("exp_form", clear_on_submit=True):
+                ex_name = st.text_input("품목명 (예: 돼지고기 5kg)")
+                ex_cost = st.number_input("금액 (원)", step=1000)
+                if st.form_submit_button("지출 등록", type="primary", use_container_width=True):
+                    new_exp = {'날짜': datetime.now().strftime("%Y-%m-%d"), '항목': ex_name, '금액': ex_cost}
+                    st.session_state.purchases = pd.concat([st.session_state.purchases, pd.DataFrame([new_exp])], ignore_index=True)
+                    st.success("저장되었습니다!")
+            
+            st.markdown("#### 지출 내역 리스트")
+            st.dataframe(st.session_state.purchases, use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with adm_tab4:
+            st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown("#### 월간 손익 보고서")
+            hist = st.session_state.history_df
+            st.line_chart(hist.set_index('날짜')[['총매출', '총매입(원가)']])
+            st.markdown("</div>", unsafe_allow_html=True)
