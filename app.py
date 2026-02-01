@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 강철 격자 + 메뉴명 포함 CSS
+# 2. [디자인] 날짜/메뉴 층간소음 해결 CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -16,14 +16,14 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
     /* -------------------------------------------------------- */
-    /* [모바일] 768px 이하 화면에서 적용되는 스타일 */
+    /* [모바일] 768px 이하: 7칸 격자 + 내부 층 분리 */
     /* -------------------------------------------------------- */
     @media (max-width: 768px) {
-        /* 1. 가로 7칸 강제 격자 (절대 안 깨짐) */
+        /* 1. 뼈대: 7칸 표 만들기 (Grid) */
         div[data-testid="stHorizontalBlock"] {
             display: grid !important;
             grid-template-columns: repeat(7, 1fr) !important;
-            gap: 1px !important;
+            gap: 2px !important; /* 칸 사이 간격 살짝 줌 */
             padding: 0px !important;
         }
         
@@ -31,21 +31,34 @@ st.markdown("""
             width: auto !important;
             flex: none !important;
             min-width: 0px !important;
+            padding: 0px !important;
         }
         
-        /* 2. 모바일용 버튼 스타일 (깨알 글씨 + 꽉 채우기) */
+        /* 2. 감옥: 버튼 내부를 1층(날짜), 2층(메뉴)으로 분리 */
         div.stButton > button {
-            font-size: 8px !important;   /* 글씨 아주 작게 */
-            height: 55px !important;     /* 높이를 키워서 메뉴명 공간 확보 */
-            padding: 2px 0px !important; /* 내부 여백 최소화 */
-            line-height: 1.2 !important; /* 줄간격 좁게 */
-            border-radius: 4px !important; /* 네모나게 */
+            /* 배치 설정 */
+            display: flex !important;
+            flex-direction: column !important; /* 위아래로 쌓기 */
+            justify-content: flex-start !important; /* 위쪽부터 채우기 */
+            align-items: center !important; /* 가운데 정렬 */
+            
+            /* 크기 및 폰트 */
+            width: 100% !important;
+            height: 60px !important;     /* 높이 넉넉하게 */
+            font-size: 8px !important;   /* 글씨 작게 */
+            line-height: 1.2 !important; /* 줄 간격 넓힘 (겹침 방지 핵심) */
+            padding: 4px 1px !important; /* 내부 여백 */
+            
+            /* 글자 줄바꿈 설정 (표 밖으로 못 나가게) */
             white-space: pre-wrap !important; /* 줄바꿈 허용 */
-            vertical-align: top !important;
+            word-wrap: break-word !important; /* 긴 단어 자르기 */
+            word-break: break-all !important; /* 무조건 줄바꿈 */
+            
+            border-radius: 4px !important;
         }
         
-        /* 요일 헤더 작게 */
-        .day-header { font-size: 10px !important; margin-bottom: 2px !important; }
+        /* 요일 헤더 */
+        .day-header { font-size: 10px !important; margin-bottom: 3px !important; }
     }
 
     /* -------------------------------------------------------- */
@@ -53,53 +66,48 @@ st.markdown("""
     /* -------------------------------------------------------- */
     div[data-testid="column"] { min-width: 0px !important; }
 
-    /* 버튼 기본 스타일 (공통) */
+    /* 공통 버튼 스타일 */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
-        width: 100%;
-        height: 65px; /* 기본 높이 */
-        margin: 0px;
         border-radius: 6px;
         transition: 0.2s;
+        margin: 0px;
     }
-    
-    /* 버튼 클릭/호버 효과 */
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
     div.stButton > button:active { background-color: #2979FF; color: white; }
-    div.stButton > button:focus { border: 1px solid #2979FF; }
 
-    /* 요일 색상 */
+    /* 날짜/요일 색상 */
     .day-header { text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px; }
     .sun { color: #FF5252; }
     .sat { color: #448AFF; }
     .wday { color: #AAAAAA; }
 
-    /* 상세 페이지 카드 */
+    /* 상세 카드 스타일 */
     .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
-    .highlight { color: #2979FF; font-weight: bold; }
     
-    /* 뒤로가기 버튼 등 큰 버튼 */
+    /* 뒤로가기 등 큰 버튼 */
     .big-btn > button {
         background-color: #2979FF !important;
         color: white !important;
         height: 50px !important;
         font-size: 14px !important;
+        display: block !important; /* flex 해제 */
     }
     </style>
     """, unsafe_allow_html=True)
 
 # 3. 데이터 초기화
 if 'menu_db' not in st.session_state:
+    # [팁] 모바일 화면을 위해 메뉴명을 짧게(4글자 내외) 줄여서 넣는 것을 추천합니다.
     st.session_state.menu_db = {
         1: {"name": "직화제육", "img": "https://images.unsplash.com/photo-1626071466175-79aba923853e?w=400", "kcal": "650", "price": 7500},
         2: {"name": "연어포케", "img": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400", "kcal": "480", "price": 8500},
-        3: {"name": "큐브스테이크", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
+        3: {"name": "스테이크", "img": "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400", "kcal": "720", "price": 9000},
         4: {"name": "닭가슴살", "img": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400", "kcal": "350", "price": 7000},
         5: {"name": "매콤찜닭", "img": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=400", "kcal": "600", "price": 7500},
     }
-    # 이름이 너무 길면 잘리니까 4~5글자로 줄인 이름을 쓰는 게 좋습니다.
     for i in range(6, 32):
         if i % 2 == 0: st.session_state.menu_db[i] = {"name": "셰프특선", "img": "https://images.unsplash.com/photo-1544124499-58912cbddaad?w=400", "kcal": "500", "price": 7500}
         else: st.session_state.menu_db[i] = {"name": "주말특식", "img": "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400", "kcal": "900", "price": 8900}
@@ -144,7 +152,7 @@ else:
 
     if st.session_state.user_role == "user":
         
-        # [모드 1] 달력 화면 (7xN 강철 격자 + 메뉴명)
+        # [모드 1] 달력 화면 (7칸 격자 + 층 분리)
         if st.session_state.view_mode == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
@@ -166,8 +174,8 @@ else:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
                             
-                            # [핵심 변경] 날짜 + 줄바꿈 + 메뉴명
-                            # CSS에서 white-space: pre-wrap을 줬기 때문에 \n이 먹힙니다.
+                            # [핵심] 날짜와 메뉴 사이에 빈 줄(\n\n)을 넉넉히 줍니다.
+                            # CSS에서 flex-direction: column이 먹히면서 위/아래로 나뉩니다.
                             btn_text = f"{day}\n{info['name']}"
                             
                             if st.button(btn_text, key=f"d_{day}"):
@@ -175,7 +183,7 @@ else:
                                 st.session_state.view_mode = "detail"
                                 st.rerun()
                         else:
-                            st.write("") # 빈 칸
+                            st.write("") 
             
             st.markdown("<br><p style='text-align:center; color:#666; font-size:12px;'>날짜를 누르면 상세 주문창으로 이동합니다.</p>", unsafe_allow_html=True)
 
