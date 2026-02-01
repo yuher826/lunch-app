@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 모바일 강제 7칸 고정 CSS (초강력 버전)
+# 2. [디자인] 모바일 화면 강제 맞춤 CSS (스크롤 제거, 무조건 한 화면)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -15,39 +15,42 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [초강력] 모바일(768px 이하)에서 가로 정렬 강제 적용 */
+    /* [핵심 1] 모바일(768px 이하)에서 가로 스크롤 없애고 무조건 한 줄에 7개 */
     @media (max-width: 768px) {
-        /* 가로 줄바꿈 원천 봉쇄 */
+        /* 부모 컨테이너: 가로 정렬, 줄바꿈 금지, 간격 0 */
         div[data-testid="stHorizontalBlock"] {
             display: flex !important;
             flex-direction: row !important;
-            flex-wrap: nowrap !important; /* 줄바꿈 절대 금지 */
-            gap: 1px !important;
+            flex-wrap: nowrap !important;
+            gap: 0px !important;
+            overflow-x: hidden !important; /* 스크롤바 숨김 */
         }
         
-        /* 컬럼 너비 강제 축소 (무조건 화면에 구겨 넣기) */
+        /* 자식 컬럼: 시작 너비를 0으로 잡고 비율로 늘림 (이래야 안 삐져나감) */
         div[data-testid="column"] {
-            flex: 1 1 0px !important; /* 공간 균등 분배 */
-            width: auto !important;
-            min-width: 0px !important; /* 최소 너비 제한 해제 (이게 핵심) */
-            padding: 0px !important;
+            flex: 1 1 0px !important; /* 0px에서 시작해서 균등 분할 */
+            width: 0px !important;
+            min-width: 0px !important;
+            padding: 1px !important;  /* 아주 미세한 간격 */
             margin: 0px !important;
         }
 
-        /* 모바일용 버튼 스타일 (아주 작게) */
+        /* 버튼: 폰트 줄이고 여백 삭제 */
         div.stButton > button {
-            font-size: 9px !important;   /* 글씨 작게 */
-            padding: 0px !important;     /* 여백 제거 */
-            height: 45px !important;     /* 높이 고정 */
+            font-size: 8px !important;   /* 글씨 최대한 작게 */
+            padding: 0px !important;     /* 내부 여백 삭제 */
+            height: 45px !important;     /* 높이 적당히 */
             line-height: 1.1 !important; /* 줄간격 좁게 */
             min-height: 0px !important;
+            white-space: pre-wrap !important; /* 줄바꿈 허용 */
         }
+        
+        /* 요일 헤더 글씨 크기 */
+        .day-header { font-size: 9px !important; margin-bottom: 2px !important; }
     }
 
-    /* PC에서도 7등분 유지 */
-    div[data-testid="column"] {
-        min-width: 0px !important;
-    }
+    /* PC 화면 설정 */
+    div[data-testid="column"] { min-width: 0px !important; }
 
     /* 버튼 기본 스타일 */
     div.stButton > button {
@@ -57,23 +60,17 @@ st.markdown("""
         border-radius: 4px;
         width: 100%;
         height: 55px;
-        white-space: pre-wrap; /* 줄바꿈 허용 */
         margin-bottom: 2px;
     }
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
 
-    /* 요일 헤더 스타일 */
-    .day-header {
-        font-size: 11px;
-        text-align: center;
-        margin-bottom: 2px;
-        font-weight: bold;
-    }
-    .sunday { color: #FF5252; }
-    .saturday { color: #448AFF; }
-    .weekday { color: #AAAAAA; }
+    /* 요일 스타일 */
+    .day-header { text-align: center; font-weight: bold; font-size: 12px; }
+    .sun { color: #FF5252; }
+    .sat { color: #448AFF; }
+    .wday { color: #AAAAAA; }
 
-    /* 카드 및 기타 */
+    /* 기타 */
     .menu-card { background-color: #1E1E1E; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; }
     .highlight { color: #2979FF; font-weight: bold; }
     h1, h2, h3 { color: white !important; }
@@ -111,7 +108,6 @@ if 'page' not in st.session_state: st.session_state.page = "calendar"
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; color: #2979FF; font-size: 3rem;'>12:10</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #888;'>직장인을 위한 점심 구독</p>", unsafe_allow_html=True)
     
     with st.container():
         st.markdown("<div class='menu-card'>", unsafe_allow_html=True)
@@ -136,75 +132,63 @@ else:
             st.session_state.logged_in = False
             st.rerun()
 
-    # ----------------------------------
-    # [A] 사용자: 진짜 7칸 고정 달력
-    # ----------------------------------
     if st.session_state.user_role == "user":
         
         if st.session_state.page == "calendar":
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # [헤더] 일~토 (7칸) - 색상 적용
+            # [헤더] 7칸
             cols = st.columns(7)
-            days_labels = [('일', 'sunday'), ('월', 'weekday'), ('화', 'weekday'), ('수', 'weekday'), ('목', 'weekday'), ('금', 'weekday'), ('토', 'saturday')]
-            
+            days_labels = [('일', 'sun'), ('월', 'wday'), ('화', 'wday'), ('수', 'wday'), ('목', 'wday'), ('금', 'wday'), ('토', 'sat')]
             for i, (day_text, css_cls) in enumerate(days_labels):
                 cols[i].markdown(f"<div class='day-header {css_cls}'>{day_text}</div>", unsafe_allow_html=True)
             
-            # [달력 본문] 일요일 시작
+            # [달력 본문] 7칸 (일요일 시작)
             cal = calendar.Calendar(firstweekday=6)
             month_days = cal.monthdayscalendar(2026, 2)
             
             for week in month_days:
-                cols = st.columns(7) # 7칸 생성
+                cols = st.columns(7)
                 for i, day in enumerate(week):
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
                             # 날짜 + 줄바꿈 + 메뉴명
                             btn_text = f"{day}\n{info['name']}"
-                            
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
                                 st.rerun()
                         else:
-                            # 빈 칸 처리 (투명 버튼)
-                            st.markdown("<div style='height:50px'></div>", unsafe_allow_html=True)
-                
-                # 주(Week) 간격 미세하게
-                st.write("")
+                            st.markdown("<div style='height:45px'></div>", unsafe_allow_html=True)
+                st.write("") # 줄 간격
 
-        # 상세 페이지 (기존 유지)
         elif st.session_state.page == "detail":
             sel_day = st.session_state.selected_date
             menu = st.session_state.menu_db.get(sel_day)
             
-            if st.button("← 달력으로 돌아가기"):
+            if st.button("← 뒤로가기"):
                 st.session_state.page = "calendar"
                 st.rerun()
                 
             st.markdown(f"<div class='menu-card'>", unsafe_allow_html=True)
-            st.markdown(f"<span class='highlight'>{sel_day}일</span>의 메뉴", unsafe_allow_html=True)
+            st.markdown(f"<span class='highlight'>{sel_day}일</span> 메뉴", unsafe_allow_html=True)
             st.markdown(f"<h3>{menu['full_name']}</h3>", unsafe_allow_html=True)
             st.image(menu['img'], use_container_width=True)
             
             c1, c2 = st.columns(2)
-            with c1: st.markdown(f"🔥 **{menu['kcal']}**")
-            with c2: st.markdown(f"💰 **{menu['price']:,}원**")
+            with c1: st.markdown(f"🔥 {menu['kcal']}")
+            with c2: st.markdown(f"💰 {menu['price']:,}원")
             
             with st.form("order"):
                 qty = st.number_input("수량", 1, 10, 1)
-                loc = st.selectbox("수령장소", ["스마트베이", "오비즈", "동일"])
+                loc = st.selectbox("수령", ["스마트베이", "오비즈", "동일"])
                 if st.form_submit_button("주문하기", type="primary", use_container_width=True):
                     new_ord = {'날짜': f"2026-02-{sel_day}", '고객명': st.session_state.user_name, '메뉴': menu['full_name'], '수량': qty, '합계': qty*menu['price'], '거점': loc}
                     st.session_state.orders = pd.concat([st.session_state.orders, pd.DataFrame([new_ord])], ignore_index=True)
                     st.success("주문 완료!")
             st.markdown("</div>", unsafe_allow_html=True)
 
-    # ----------------------------------
-    # [B] 관리자 모드
-    # ----------------------------------
     elif st.session_state.user_role == "admin":
         st.markdown("### 📊 관리자 모드")
         df_ord = st.session_state.orders
