@@ -16,17 +16,20 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심 1] 컬럼이 모바일에서 세로로 떨어지는 것을 방지 (No Wrap) */
+    /* [핵심 1] 가로 배치 강제 (줄바꿈 금지) */
     div[data-testid="stHorizontalBlock"] {
-        flex-wrap: nowrap !important; /* 줄바꿈 절대 금지 */
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
         overflow-x: hidden !important;
+        gap: 2px !important; /* 버튼 사이 간격 최소화 */
     }
 
-    /* [핵심 2] 5등분 강제 고정 */
+    /* [핵심 2] 컬럼 너비 강제 축소 (무조건 화면에 맞춤) */
     div[data-testid="column"] {
-        flex: 1 1 0px !important; /* 공간 균등 분배 */
-        min-width: 0px !important; /* 최소 너비 제한 해제 */
-        padding: 0px 1px !important; /* 간격 최소화 */
+        flex: 1 1 0px !important;
+        width: auto !important;
+        min-width: 0px !important; /* 이게 없으면 세로로 떨어짐 */
+        padding: 0px !important;
         margin: 0px !important;
     }
 
@@ -35,17 +38,17 @@ st.markdown("""
         color: white; background-color: #2C2C2C; border: none;
     }
     
-    /* 날짜 버튼 디자인 */
+    /* 날짜 버튼 디자인 (작고 단단하게) */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
-        border-radius: 6px;
+        border-radius: 4px;
         width: 100%;
-        padding: 4px 0px !important; /* 내부 여백 줄임 */
-        font-size: 0.7rem !important; /* 글씨 크기 최적화 */
-        height: 60px !important; /* 버튼 높이 고정 */
-        white-space: pre-wrap !important; /* 줄바꿈 허용 */
+        padding: 0px !important; /* 내부 여백 제거 */
+        font-size: 11px !important; /* 글씨 크기 줄임 (모바일 대응) */
+        height: 50px !important; /* 높이 고정 */
+        white-space: pre-wrap !important;
         line-height: 1.2 !important;
         margin: 0px !important;
     }
@@ -130,6 +133,7 @@ if not st.session_state.logged_in:
 # [화면 2] 메인 앱
 # ==========================================
 else:
+    # [상단바] 사이드바로 이동 (달력 깨짐 방지)
     with st.sidebar:
         st.write(f"👋 **{st.session_state.user_name}**님")
         if st.button("로그아웃", key="logout"): 
@@ -142,14 +146,14 @@ else:
     if st.session_state.user_role == "user":
         
         if st.session_state.page == "calendar":
-            # 이모지 제거하고 텍스트만 표시
+            # [수정] 아이콘 제거, 텍스트만 깔끔하게
             st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
-            # 헤더: 월화수목금 (5칸)
+            # [수정] 요일 헤더 (가로 5칸 강제)
             days = ['월', '화', '수', '목', '금']
             cols = st.columns(5)
             for i, d in enumerate(days):
-                cols[i].markdown(f"<div style='text-align:center; font-size:0.8rem; color:#888;'>{d}</div>", unsafe_allow_html=True)
+                cols[i].markdown(f"<div style='text-align:center; font-size:12px; color:#888;'>{d}</div>", unsafe_allow_html=True)
             
             cal = calendar.monthcalendar(2026, 2)
             
@@ -163,14 +167,15 @@ else:
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            # 에러 방지: 텍스트 합치기
+                            # 버튼 내용: 날짜 줄바꿈 메뉴명
                             btn_text = f"{day}\n{info['name']}"
                             if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
                                 st.rerun()
                         else:
-                            st.write("")
+                            # 빈 날짜도 버튼으로 채워서 모양 유지 (클릭불가)
+                            st.markdown("<div style='height:50px;'></div>", unsafe_allow_html=True)
                 
                 # 2. 주말 (토~일) -> 아랫줄
                 if week[5] != 0 or week[6] != 0:
@@ -198,7 +203,8 @@ else:
                                 st.session_state.page = "detail"
                                 st.rerun()
                 
-                st.markdown("<hr style='margin: 5px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+                # 주 사이 구분선
+                st.markdown("<hr style='margin: 5px 0; border-top: 1px dashed #333;'>", unsafe_allow_html=True)
 
             st.markdown("<br><div style='text-align:center; color:#666; font-size:0.8rem;'>평일(윗줄) / 주말(아랫줄)</div>", unsafe_allow_html=True)
 
