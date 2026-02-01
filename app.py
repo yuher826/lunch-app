@@ -8,7 +8,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 5칸 기준 + 줄바꿈 최적화 CSS
+# 2. [디자인] 달력 전용 CSS (충돌 방지 최적화)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -17,11 +17,12 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심] 5등분 기준 (20% 너비) */
+    /* [핵심] 달력 5등분 강제 고정 */
+    /* 주의: 이 설정 때문에 상단 헤더에 컬럼을 쓰면 깨질 수 있음 -> 헤더는 사이드바로 이동 */
     [data-testid="column"] {
         display: flex;
         flex-direction: column;
-        width: 20% !important; 
+        width: 20% !important; /* 무조건 5등분 (모바일 줄바꿈 방지) */
         flex: 1 1 20% !important;
         min-width: 0px !important;
         padding: 0px 1px !important;
@@ -32,7 +33,7 @@ st.markdown("""
         color: white; background-color: #2C2C2C; border: none;
     }
     
-    /* 날짜 버튼 디자인 (넓고 시원하게) */
+    /* 날짜 버튼 디자인 */
     div.stButton > button {
         background-color: #2C2C2C;
         border: 1px solid #333;
@@ -62,9 +63,7 @@ st.markdown("""
     p, span, div, label { color: #E0E0E0; }
     .highlight { color: #2979FF; font-weight: bold; }
     
-    /* 주말 구분선 */
-    .weekend-divider { border-top: 1px dashed #333; margin: 5px 0; }
-    
+    /* 탭 스타일 */
     .stTabs [data-baseweb="tab-list"] { gap: 5px; }
     .stTabs [data-baseweb="tab"] { background-color: #1E1E1E; border-radius: 8px; color: white; font-size: 0.8rem; }
     .stTabs [aria-selected="true"] { background-color: #2979FF !important; color: white !important; }
@@ -122,3 +121,109 @@ if not st.session_state.logged_in:
         with tab2:
             new_id = st.text_input("새 아이디")
             new_pw = st.text_input("새 비밀번호", type="password")
+            if st.button("가입하기", use_container_width=True):
+                if new_id:
+                    st.session_state.user_db[new_id] = new_pw
+                    st.success("가입 완료!")
+        st.markdown("</div>", unsafe_allow_html=True)
+
+# ==========================================
+# [화면 2] 메인 앱
+# ==========================================
+else:
+    # [수정] 상단 헤더의 컬럼을 제거하고 사이드바로 이동 (화면 깨짐 방지)
+    with st.sidebar:
+        st.write(f"👋 **{st.session_state.user_name}**님")
+        if st.button("로그아웃", key="logout"): 
+            st.session_state.logged_in = False
+            st.rerun()
+
+    # ----------------------------------
+    # [A] 사용자: 5+2 배열 달력 (화면 깨짐 해결)
+    # ----------------------------------
+    if st.session_state.user_role == "user":
+        
+        if st.session_state.page == "calendar":
+            st.markdown("<h3 style='text-align:center;'>📅 2026년 2월</h3>", unsafe_allow_html=True)
+            
+            # 헤더: 월화수목금 (5칸)
+            days = ['월', '화', '수', '목', '금']
+            cols = st.columns(5)
+            for i, d in enumerate(days):
+                cols[i].markdown(f"<div style='text-align:center; font-size:0.8rem; color:#888;'>{d}</div>", unsafe_allow_html=True)
+            
+            cal = calendar.monthcalendar(2026, 2)
+            
+            # 주(Week) 단위 루프
+            for week_idx, week in enumerate(cal):
+                
+                # 1. 평일 (월~금, 인덱스 0~4) -> 윗줄
+                cols = st.columns(5)
+                for i in range(5):
+                    day = week[i]
+                    with cols[i]:
+                        if day != 0:
+                            info = st.session_state.menu_db.get(day, {"name": ""})
+                            if st.button(f"{day}\n{info['name']}", key=f"d_{day}"):
+                                st.session_state.selected_date = day
+                                st.session_state.page = "detail"
+                                st.rerun()
+                        else:
+                            st.write("")
+                
+                # 2. 주말 (토~일) -> 아랫줄
+                if week[5] != 0 or week[6] != 0:
+                    cols_weekend = st.columns(5) # 5칸 그리드 유지
+                    
+                    # 토요일 (첫번째 칸)
+                    with cols_weekend[0]:
+                        day = week[5]
+                        if day != 0:
+                            info = st.session_state.menu_db.get(day, {"name": ""})
+                            if st.button(f"{day} (토)\n{info['name']}", key=f"d_{day}"):
+                                st.session_state.selected_date = day
+                                st.session_state.page = "detail"
+                                st.rerun()
+                    
+                    # 일요일 (두번째 칸)
+                    with cols_weekend[1]:
+                        day = week[6]
+                        if day != 0:
+                            info = st.session_state.menu_db.get(day, {"name": ""})
+                            if st.button(f"{day} (일)\n{info['name']}", key=f"d_{day}"):
+                                st.session_state.selected_date = day
+                                st.session_state.page = "detail"
+                                st.rerun()
+                
+                st.markdown("<hr style='margin: 5px 0; border-top: 1px solid #333;'>", unsafe_allow_html=True)
+
+            st.markdown("<br><div style='text-align:center; color:#666; font-size:0.8rem;'>평일(윗줄) / 주말(아랫줄)</div>", unsafe_allow_html=True)
+
+        # 상세 페이지
+        elif st.session_state.page == "detail":
+            sel_day = st.session_state.selected_date
+            menu = st.session_state.menu_db.get(sel_day)
+            
+            if st.button("← 달력으로 돌아가기"):
+                st.session_state.page = "calendar"
+                st.rerun()
+                
+            st.markdown(f"<div class='menu-card'>", unsafe_allow_html=True)
+            st.markdown(f"<span class='highlight'>{sel_day}일</span>의 메뉴", unsafe_allow_html=True)
+            st.markdown(f"<h3>{menu['full_name']}</h3>", unsafe_allow_html=True)
+            
+            st.image(menu['img'], use_container_width=True)
+            
+            c1, c2 = st.columns(2)
+            with c1: st.markdown(f"🔥 **{menu['kcal']}** kcal")
+            with c2: st.markdown(f"💰 **{menu['price']:,}** 원")
+            
+            st.markdown("---")
+            
+            with st.form("order"):
+                qty = st.number_input("수량", 1, 10, 1)
+                loc = st.selectbox("받으실 곳", ["평촌 스마트베이", "오비즈타워", "동일테크노"])
+                
+                if st.form_submit_button("장바구니 담기 & 결제", type="primary", use_container_width=True):
+                    new_ord = {
+                        '날짜': f"
