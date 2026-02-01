@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. 페이지 설정
 st.set_page_config(page_title="12:10 Premium", layout="centered")
 
-# 2. [디자인] 달력 전용 CSS (충돌 방지 안전 버전)
+# 2. [디자인] 모바일 강제 가로 정렬 CSS (초강력 버전)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
@@ -16,15 +16,18 @@ st.markdown("""
     .stApp { background-color: #121212; color: #FFFFFF; }
     html, body, [class*="css"] { font-family: 'Pretendard', sans-serif; }
 
-    /* [핵심] 달력 5등분 강제 고정 */
-    /* 화면 깨짐 방지를 위해 상단 헤더는 사이드바로 뺐습니다 */
-    [data-testid="column"] {
-        display: flex;
-        flex-direction: column;
-        width: 20% !important; /* 무조건 5등분 (모바일 줄바꿈 방지) */
-        flex: 1 1 20% !important;
-        min-width: 0px !important;
-        padding: 0px 1px !important;
+    /* [핵심 1] 컬럼이 모바일에서 세로로 떨어지는 것을 방지 (No Wrap) */
+    div[data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important; /* 줄바꿈 절대 금지 */
+        overflow-x: hidden !important;
+    }
+
+    /* [핵심 2] 5등분 강제 고정 */
+    div[data-testid="column"] {
+        flex: 1 1 0px !important; /* 공간 균등 분배 */
+        min-width: 0px !important; /* 최소 너비 제한 해제 */
+        padding: 0px 1px !important; /* 간격 최소화 */
+        margin: 0px !important;
     }
 
     /* 입력창 스타일 */
@@ -37,19 +40,16 @@ st.markdown("""
         background-color: #2C2C2C;
         border: 1px solid #333;
         color: #E0E0E0;
-        border-radius: 8px;
+        border-radius: 6px;
         width: 100%;
-        padding: 2px 0px !important;
-        font-size: 0.75rem !important;
-        height: 60px !important;
-        white-space: pre-wrap !important;
-        line-height: 1.3 !important;
-        margin-bottom: 4px !important;
+        padding: 4px 0px !important; /* 내부 여백 줄임 */
+        font-size: 0.7rem !important; /* 글씨 크기 최적화 */
+        height: 60px !important; /* 버튼 높이 고정 */
+        white-space: pre-wrap !important; /* 줄바꿈 허용 */
+        line-height: 1.2 !important;
+        margin: 0px !important;
     }
     div.stButton > button:hover { border-color: #2979FF; color: #2979FF; }
-    
-    /* 주요 버튼 */
-    .primary-btn { background-color: #2979FF !important; color: white !important; font-weight: 800 !important; }
     
     /* 카드 디자인 */
     .menu-card {
@@ -130,7 +130,6 @@ if not st.session_state.logged_in:
 # [화면 2] 메인 앱
 # ==========================================
 else:
-    # [중요] 상단 헤더를 왼쪽 사이드바로 이동 (화면 깨짐 방지)
     with st.sidebar:
         st.write(f"👋 **{st.session_state.user_name}**님")
         if st.button("로그아웃", key="logout"): 
@@ -138,12 +137,13 @@ else:
             st.rerun()
 
     # ----------------------------------
-    # [A] 사용자: 5+2 배열 달력 (오타 수정 완료)
+    # [A] 사용자: 5칸 강제 가로 정렬 달력
     # ----------------------------------
     if st.session_state.user_role == "user":
         
         if st.session_state.page == "calendar":
-            st.markdown("<h3 style='text-align:center;'>📅 2026년 2월</h3>", unsafe_allow_html=True)
+            # 이모지 제거하고 텍스트만 표시
+            st.markdown("<h3 style='text-align:center;'>2026년 2월</h3>", unsafe_allow_html=True)
             
             # 헤더: 월화수목금 (5칸)
             days = ['월', '화', '수', '목', '금']
@@ -163,7 +163,9 @@ else:
                     with cols[i]:
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            if st.button(f"{day}\n{info['name']}", key=f"d_{day}"):
+                            # 에러 방지: 텍스트 합치기
+                            btn_text = f"{day}\n{info['name']}"
+                            if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
                                 st.rerun()
@@ -179,7 +181,8 @@ else:
                         day = week[5]
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            if st.button(f"{day} (토)\n{info['name']}", key=f"d_{day}"):
+                            btn_text = f"{day}(토)\n{info['name']}"
+                            if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
                                 st.rerun()
@@ -189,7 +192,8 @@ else:
                         day = week[6]
                         if day != 0:
                             info = st.session_state.menu_db.get(day, {"name": ""})
-                            if st.button(f"{day} (일)\n{info['name']}", key=f"d_{day}"):
+                            btn_text = f"{day}(일)\n{info['name']}"
+                            if st.button(btn_text, key=f"d_{day}"):
                                 st.session_state.selected_date = day
                                 st.session_state.page = "detail"
                                 st.rerun()
@@ -224,7 +228,6 @@ else:
                 loc = st.selectbox("받으실 곳", ["평촌 스마트베이", "오비즈타워", "동일테크노"])
                 
                 if st.form_submit_button("장바구니 담기 & 결제", type="primary", use_container_width=True):
-                    # [에러 발생했던 지점 수정 완료]
                     new_ord = {
                         '날짜': f"2026-02-{sel_day}",
                         '고객명': st.session_state.user_name,
